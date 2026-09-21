@@ -8,6 +8,25 @@ import { getSharedKit } from "@/lib/shared-kit.functions";
 import { TokensSection, VoiceSection } from "@/routes/kit.$kitId";
 
 export const Route = createFileRoute("/share/$shareToken")({
+  head: ({ params }) => ({
+    meta: [
+      { title: "Shared brand kit — Brand DNA" },
+      {
+        name: "description",
+        content:
+          "A shared brand kit: colors, typography, logos, voice and design tokens, extracted with Brand DNA.",
+      },
+      { property: "og:title", content: "Shared brand kit — Brand DNA" },
+      {
+        property: "og:description",
+        content:
+          "A shared brand kit: colors, typography, logos, voice and design tokens, extracted with Brand DNA.",
+      },
+      { property: "og:url", content: `/share/${params.shareToken}` },
+      { property: "og:type", content: "article" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: SharedKitPage,
 });
 
@@ -123,7 +142,7 @@ function SharedKitPage() {
               {data.assets.map((a: any) => (
                 <div key={a.id} className="overflow-hidden rounded-xl border border-border bg-card">
                   <div className="flex h-40 items-center justify-center bg-surface p-6">
-                    <img src={a.url} alt={a.kind} className="max-h-full max-w-full object-contain" />
+                    <img src={a.url} alt={`${kit.name} ${a.kind}`} className="max-h-full max-w-full object-contain" />
                   </div>
                   <div className="border-t border-border p-3 text-xs uppercase tracking-wider text-muted-foreground">
                     {a.kind}
