@@ -34,7 +34,6 @@ export const createKit = createServerFn({ method: "POST" })
       source_url: data.sourceUrl ?? null,
       status: "pending",
       user_id: context.userId,
-      anon_token: null,
     };
 
     const { data: created, error } = await admin
@@ -82,9 +81,9 @@ export const getKit = createServerFn({ method: "POST" })
       admin.from("kit_voice").select("*").eq("kit_id", data.kitId).maybeSingle(),
     ]);
 
-    // Never ship ownership secrets to the browser: anon_token / user_id can be
-    // replayed, and share_token is a capability URL.
-    const { anon_token: _at, user_id: _uid, share_token: st, ...safeKit } = k;
+    // Never ship ownership secrets to the browser: user_id can be replayed and
+    // share_token is a capability URL.
+    const { user_id: _uid, share_token: st, ...safeKit } = k;
     const sanitized = { ...safeKit, isOwner: true, share_token: st ?? null };
 
     return {
@@ -159,7 +158,6 @@ export const duplicateKit = createServerFn({ method: "POST" })
       share_token: null,
       is_public: false,
       user_id: context.userId,
-      anon_token: null,
     };
     const { data: created, error } = await admin
       .from("brand_kits")

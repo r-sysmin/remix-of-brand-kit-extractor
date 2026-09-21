@@ -54,7 +54,6 @@ export async function createKitRow(args: { sourceUrl?: string; name?: string; us
       source_url: args.sourceUrl ?? null,
       status: "pending",
       user_id: args.userId,
-      anon_token: null,
     })
     .select("id")
     .single();

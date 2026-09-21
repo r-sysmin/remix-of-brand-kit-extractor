@@ -16,7 +16,6 @@ export type Database = {
     Tables: {
       brand_kits: {
         Row: {
-          anon_token: string | null
           brand_positioning: Json | null
           created_at: string
           error_code: string | null
@@ -37,7 +36,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          anon_token?: string | null
           brand_positioning?: Json | null
           created_at?: string
           error_code?: string | null
@@ -58,7 +56,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          anon_token?: string | null
           brand_positioning?: Json | null
           created_at?: string
           error_code?: string | null

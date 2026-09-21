@@ -22,7 +22,7 @@ export const getSharedKit = createServerFn({ method: "POST" })
       admin.from("kit_voice").select("*").eq("kit_id", k.id).maybeSingle(),
     ]);
     // Strip ownership secrets from the public share payload.
-    const { anon_token: _at, user_id: _uid, share_token: _st, ...safeKit } = k;
+    const { user_id: _uid, share_token: _st, ...safeKit } = k;
     return {
       kit: { ...safeKit, isOwner: false },
       colors: colors.data ?? [],
