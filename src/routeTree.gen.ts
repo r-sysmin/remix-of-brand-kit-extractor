@@ -13,6 +13,7 @@ import { Route as StartHereRouteImport } from './routes/start-here'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as DesignRouteImport } from './routes/design'
+import { Route as CompetitorsRouteImport } from './routes/competitors'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShareShareTokenRouteImport } from './routes/share.$shareToken'
 import { Route as KitKitIdRouteImport } from './routes/kit.$kitId'
@@ -38,6 +39,11 @@ const LibraryRoute = LibraryRouteImport.update({
 const DesignRoute = DesignRouteImport.update({
   id: '/design',
   path: '/design',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompetitorsRoute = CompetitorsRouteImport.update({
+  id: '/competitors',
+  path: '/competitors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -74,6 +80,7 @@ const DesignHistoryDiffRoute = DesignHistoryDiffRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/competitors': typeof CompetitorsRoute
   '/design': typeof DesignRouteWithChildren
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/competitors': typeof CompetitorsRoute
   '/design': typeof DesignRouteWithChildren
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
@@ -99,6 +107,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/competitors': typeof CompetitorsRoute
   '/design': typeof DesignRouteWithChildren
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/competitors'
     | '/design'
     | '/library'
     | '/mcp'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/competitors'
     | '/design'
     | '/library'
     | '/mcp'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/competitors'
     | '/design'
     | '/library'
     | '/mcp'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CompetitorsRoute: typeof CompetitorsRoute
   DesignRoute: typeof DesignRouteWithChildren
   LibraryRoute: typeof LibraryRoute
   McpRoute: typeof McpRoute
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/design'
       fullPath: '/design'
       preLoaderRoute: typeof DesignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/competitors': {
+      id: '/competitors'
+      path: '/competitors'
+      fullPath: '/competitors'
+      preLoaderRoute: typeof CompetitorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -259,6 +279,7 @@ const DesignRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CompetitorsRoute: CompetitorsRoute,
   DesignRoute: DesignRouteWithChildren,
   LibraryRoute: LibraryRoute,
   McpRoute: McpRoute,
