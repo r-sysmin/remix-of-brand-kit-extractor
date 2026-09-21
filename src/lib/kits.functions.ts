@@ -158,6 +158,8 @@ export const duplicateKit = createServerFn({ method: "POST" })
       name: `${src.name ?? "Untitled"} (copy)`,
       share_token: null,
       is_public: false,
+      user_id: context.userId,
+      anon_token: null,
     };
     const { data: created, error } = await admin
       .from("brand_kits")
