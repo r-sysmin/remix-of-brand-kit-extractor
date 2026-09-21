@@ -118,15 +118,16 @@ export const renameKit = createServerFn({ method: "POST" })
   });
 
 export const deleteKit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
-      ownerToken: z.string().min(1).max(200),
+      ownerToken: z.string().min(1).max(200).optional(),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const admin = getAdmin();
-    await loadOwnedKit(data.kitId, data.ownerToken);
+    await assertKitOwner(data.kitId, context.userId);
     // Explicit child cleanup (no FK cascade defined)
     await Promise.all([
       admin.from("kit_colors").delete().eq("kit_id", data.kitId),
@@ -141,15 +142,16 @@ export const deleteKit = createServerFn({ method: "POST" })
   });
 
 export const duplicateKit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
-      ownerToken: z.string().min(1).max(200),
+      ownerToken: z.string().min(1).max(200).optional(),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const admin = getAdmin();
-    const src = await loadOwnedKit(data.kitId, data.ownerToken);
+    const src = await assertKitOwner(data.kitId, context.userId);
     const { id: _omitId, created_at: _ca, updated_at: _ua, share_token: _st, ...rest } = src as any;
     const insertRow = {
       ...rest,
