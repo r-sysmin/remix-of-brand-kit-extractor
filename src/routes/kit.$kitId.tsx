@@ -47,6 +47,25 @@ import { smoothScrollTo } from "@/components/smooth-scroll";
 const PENDING_EXTRACTION_PREFIX = "branddna.pendingExtraction:";
 
 export const Route = createFileRoute("/kit/$kitId")({
+  head: ({ params }) => ({
+    meta: [
+      { title: "Brand kit — Brand DNA" },
+      {
+        name: "description",
+        content:
+          "This brand kit's colors, typography, logos, voice and design tokens, ready to copy or export.",
+      },
+      { property: "og:title", content: "Brand kit — Brand DNA" },
+      {
+        property: "og:description",
+        content:
+          "This brand kit's colors, typography, logos, voice and design tokens, ready to copy or export.",
+      },
+      { property: "og:url", content: `/kit/${params.kitId}` },
+      { property: "og:type", content: "article" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: KitPage,
 });
 
@@ -303,12 +322,14 @@ function KitPage() {
                   assets={data.assets}
                   colors={data.colors}
                   fonts={data.fonts}
+                  kitName={kit.name}
                 />
               </SectionAnchor>
               <SectionAnchor id="assets" label="Logos & Assets">
                 <AssetsSection
                   assets={data.assets}
                   kitId={kit.id}
+                  kitName={kit.name}
                   ownerToken={ownerToken}
                   onChanged={() => setReloadKey((k) => k + 1)}
                 />
@@ -488,10 +509,12 @@ function OverviewSection({
   assets,
   colors,
   fonts,
+  kitName,
 }: {
   assets: any[];
   colors: any[];
   fonts: any[];
+  kitName: string;
 }) {
   const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
   const publicFor = (path: string | null | undefined) =>
@@ -515,7 +538,7 @@ function OverviewSection({
         {logo ? (
           <img
             src={publicFor(logo.storage_path) ?? logo.url}
-            alt="Logo"
+            alt={`${kitName} logo`}
             className="max-h-full max-w-full object-contain p-2"
           />
         ) : (
@@ -1477,11 +1500,13 @@ function FontCard({ font: f }: { font: any }) {
 function AssetsSection({
   assets,
   kitId,
+  kitName,
   ownerToken,
   onChanged,
 }: {
   assets: any[];
   kitId: string;
+  kitName: string;
   ownerToken: string;
   onChanged: () => void;
 }) {
@@ -1699,7 +1724,7 @@ function AssetsSection({
             >
               <img
                 src={primary}
-                alt={a.kind}
+                alt={`${kitName} ${a.kind}`}
                 className="max-h-full max-w-full object-contain"
                 style={
                   a.kind === "favicon"

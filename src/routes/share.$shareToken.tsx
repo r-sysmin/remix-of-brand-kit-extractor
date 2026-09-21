@@ -142,7 +142,7 @@ function SharedKitPage() {
               {data.assets.map((a: any) => (
                 <div key={a.id} className="overflow-hidden rounded-xl border border-border bg-card">
                   <div className="flex h-40 items-center justify-center bg-surface p-6">
-                    <img src={a.url} alt={a.kind} className="max-h-full max-w-full object-contain" />
+                    <img src={a.url} alt={`${kit.name} ${a.kind}`} className="max-h-full max-w-full object-contain" />
                   </div>
                   <div className="border-t border-border p-3 text-xs uppercase tracking-wider text-muted-foreground">
                     {a.kind}
