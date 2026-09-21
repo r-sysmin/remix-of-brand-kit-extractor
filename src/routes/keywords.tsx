@@ -470,22 +470,80 @@ function KeywordsPage() {
             <section className={`${card} mb-10`}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="font-display text-2xl">Every keyword</h2>
-                <div className="flex items-center gap-2">
-                  <label className={label} htmlFor="sort">
-                    Sort by
+                <button
+                  className="inline-flex items-center gap-2 rounded-full border border-border-subtle px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:border-foreground disabled:opacity-40"
+                  onClick={exportCsv}
+                  disabled={rows.length === 0}
+                >
+                  <Download className="h-3.5 w-3.5" aria-hidden />
+                  Export CSV ({rows.length})
+                </button>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-end gap-3 rounded-lg border border-border-subtle bg-surface p-3">
+                <div>
+                  <label className={label} htmlFor="preset-pick">
+                    Saved view
                   </label>
                   <select
-                    id="sort"
-                    className="rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value as SortKey)}
+                    id="preset-pick"
+                    className="mt-1 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                    value=""
+                    onChange={(e) => e.target.value && applyPreset(e.target.value)}
                   >
-                    <option value="volume">Search volume</option>
-                    <option value="difficulty">Difficulty</option>
-                    <option value="cpc">Cost per click</option>
-                    <option value="trendChange">Trend</option>
+                    <option value="">
+                      {presets.length === 0 ? "None saved yet" : "Apply a saved view…"}
+                    </option>
+                    {presets.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
+                <div>
+                  <label className={label} htmlFor="preset-name">
+                    Save current view as
+                  </label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      id="preset-name"
+                      className="w-40 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                      value={presetName}
+                      placeholder="e.g. easy wins"
+                      onChange={(e) => setPresetName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && saveCurrentPreset()}
+                    />
+                    <button
+                      className="font-mono text-[11px] uppercase tracking-[0.1em] underline decoration-border-subtle underline-offset-4 hover:decoration-foreground disabled:opacity-40"
+                      onClick={saveCurrentPreset}
+                      disabled={!presetName.trim()}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+                {presets.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {presets.map((p) => (
+                      <span
+                        key={p.name}
+                        className="inline-flex items-center gap-1 rounded-full border border-border-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em]"
+                      >
+                        <button className="hover:underline" onClick={() => applyPreset(p.name)}>
+                          {p.name}
+                        </button>
+                        <button
+                          aria-label={`Delete saved view ${p.name}`}
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => deletePreset(p.name)}
+                        >
+                          <X className="h-3 w-3" aria-hidden />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 flex flex-wrap items-end gap-3 rounded-lg border border-border-subtle bg-surface p-3">
