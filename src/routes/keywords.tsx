@@ -142,7 +142,16 @@ function Difficulty({ value }: { value: number }) {
   );
 }
 
-type SortKey = "volume" | "difficulty" | "cpc" | "trendChange";
+type SortKey =
+  | "phrase"
+  | "volume"
+  | "difficulty"
+  | "intent"
+  | "trendChange"
+  | "cpc"
+  | "group";
+
+type SortDir = "asc" | "desc";
 
 type Filters = {
   minVolume: string;
@@ -164,12 +173,41 @@ const EMPTY_FILTERS: Filters = {
   group: "any",
 };
 
+type Preset = { name: string; filters: Filters; sortKey: SortKey; sortDir: SortDir };
+
+const PRESETS_KEY = "branddna.keyword_presets";
+
+function loadPresets(): Preset[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(PRESETS_KEY) ?? "[]");
+    return Array.isArray(parsed) ? (parsed as Preset[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePresets(presets: Preset[]) {
+  try {
+    window.localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+  } catch {
+    /* storage unavailable — presets stay in memory for this session */
+  }
+}
+
 // Parses "keyword | group" lines; group is optional.
 function parseKeywordLine(line: string): { phrase: string; group: string } | null {
   const [phrase, group] = line.split("|").map((s) => s.trim());
   if (!phrase || phrase.length < 2) return null;
   return { phrase, group: group || "" };
 }
+
+function csvCell(value: string | number) {
+  const s = String(value ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+const TREND_RANK: Record<string, number> = { rising: 3, flat: 2, falling: 1, unknown: 0 };
 
 function KeywordsPage() {
   const dashboardFn = useServerFn(keywordDashboard);
