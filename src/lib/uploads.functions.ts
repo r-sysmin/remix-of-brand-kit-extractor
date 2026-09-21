@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
+import { assertKitOwner } from "@/server/kit-auth.server";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
 const MAX_FILES = 10;

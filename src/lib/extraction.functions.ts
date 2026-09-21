@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertKitOwner } from "@/server/kit-auth.server";
 import {
   ExtractKitInputSchema,
   GenerateSampleCopyInputSchema,
@@ -9,13 +11,22 @@ import {
 } from "@/server/extraction.server";
 
 export const extractKit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => ExtractKitInputSchema.parse(data))
-  .handler(async ({ data }) => extractKitImpl(data));
+  .handler(async ({ data, context }) => {
+    await assertKitOwner(data.kitId, context.userId);
+    return extractKitImpl(data);
+  });
 
 export const generateSampleCopy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => GenerateSampleCopyInputSchema.parse(data))
   .handler(async ({ data }) => generateSampleCopyImpl(data));
 
 export const harvestMoreAssets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => HarvestMoreAssetsInputSchema.parse(data))
-  .handler(async ({ data }) => harvestMoreAssetsImpl(data));
+  .handler(async ({ data, context }) => {
+    await assertKitOwner(data.kitId, context.userId);
+    return harvestMoreAssetsImpl(data);
+  });

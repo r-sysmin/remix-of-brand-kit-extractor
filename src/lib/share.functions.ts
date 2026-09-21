@@ -1,30 +1,23 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
+import { assertKitOwner } from "@/server/kit-auth.server";
 
-// Toggle public sharing for a kit. Owner-only.
+// Toggle public sharing for a kit. Owner-only, where "owner" comes from the
+// verified session — never from request input.
 export const setKitShare = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
-      ownerToken: z.string().min(1).max(200),
+      ownerToken: z.string().min(1).max(200).optional(),
       isPublic: z.boolean(),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const admin = getAdmin();
-    const { data: kit } = await admin
-      .from("brand_kits")
-      .select("id, user_id, anon_token, share_token")
-      .eq("id", data.kitId)
-      .maybeSingle();
-    if (!kit) throw new Error("Kit not found");
-    const k = kit as any;
-    // Ownership gate: only the kit owner (auth user_id OR anon_token holder) may toggle sharing.
-    const isOwner =
-      (k.user_id && k.user_id === data.ownerToken) ||
-      (k.anon_token && k.anon_token === data.ownerToken);
-    if (!isOwner) throw new Error("Forbidden: only the kit owner can change sharing");
+    const k = await assertKitOwner(data.kitId, context.userId);
 
     const update: Record<string, any> = { is_public: data.isPublic };
     if (data.isPublic && !k.share_token) {
