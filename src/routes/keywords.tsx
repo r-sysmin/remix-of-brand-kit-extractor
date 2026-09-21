@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { keywordDashboard, researchKeyword } from "@/lib/semrush.functions";
+import { clusterKeywords } from "@/lib/keyword-clusters";
+
 
 export const Route = createFileRoute("/keywords")({
   head: () => ({
