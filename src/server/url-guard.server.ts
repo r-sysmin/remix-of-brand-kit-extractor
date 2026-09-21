@@ -60,3 +60,101 @@ export function isBlockedSourceUrl(url: string): boolean {
     return true;
   }
 }
+
+// ---------------------------------------------------------------------------
+// DNS-level checks (anti DNS-rebinding)
+//
+// The literal-hostname checks above cannot catch a public domain that resolves
+// to a private/internal address (cloud metadata, localhost, internal services).
+// The Worker runtime has no `dns` module, so resolve over DNS-over-HTTPS and
+// re-check every returned address before connecting.
+// ---------------------------------------------------------------------------
+
+const DOH_ENDPOINT = "https://cloudflare-dns.com/dns-query";
+const DNS_TIMEOUT_MS = 4000;
+const dnsCache = new Map<string, { blocked: boolean; at: number }>();
+const DNS_CACHE_TTL_MS = 60_000;
+
+async function resolveHost(host: string, type: "A" | "AAAA"): Promise<string[]> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), DNS_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `${DOH_ENDPOINT}?name=${encodeURIComponent(host)}&type=${type}`,
+      { headers: { Accept: "application/dns-json" }, signal: ctrl.signal },
+    );
+    if (!res.ok) throw new Error(`DoH ${res.status}`);
+    const json = (await res.json()) as { Answer?: Array<{ type: number; data: string }> };
+    const wanted = type === "A" ? 1 : 28;
+    return (json.Answer ?? []).filter((a) => a.type === wanted).map((a) => a.data);
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/** True when the hostname resolves (partly or wholly) to a private/reserved IP. */
+export async function resolvesToPrivateAddress(host: string): Promise<boolean> {
+  const key = host.toLowerCase();
+  const hit = dnsCache.get(key);
+  if (hit && Date.now() - hit.at < DNS_CACHE_TTL_MS) return hit.blocked;
+
+  let blocked = false;
+  try {
+    const [a, aaaa] = await Promise.all([
+      resolveHost(key, "A").catch(() => [] as string[]),
+      resolveHost(key, "AAAA").catch(() => [] as string[]),
+    ]);
+    if (a.length === 0 && aaaa.length === 0) {
+      // Could not resolve — fail closed rather than fetch blind.
+      blocked = true;
+    } else {
+      blocked =
+        a.some((ip) => isIpv4(ip) && isPrivateIpv4(ip)) ||
+        aaaa.some((ip) => isPrivateIpv6(ip));
+    }
+  } catch {
+    blocked = true;
+  }
+  dnsCache.set(key, { blocked, at: Date.now() });
+  return blocked;
+}
+
+/** Full check: literal-host rules plus DNS resolution of the hostname. */
+export async function isBlockedSourceUrlDeep(url: string): Promise<boolean> {
+  if (isBlockedSourceUrl(url)) return true;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (isIpv4(host) || host.includes(":")) return false; // literal IP already vetted
+    return await resolvesToPrivateAddress(host);
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * fetch() replacement for client-supplied URLs: validates the target (including
+ * DNS) and re-validates every redirect hop instead of letting fetch follow them
+ * blindly.
+ */
+export async function safeFetch(
+  url: string,
+  init: RequestInit = {},
+  maxHops = 5,
+): Promise<Response> {
+  let current = url;
+  for (let hop = 0; hop <= maxHops; hop++) {
+    if (await isBlockedSourceUrlDeep(current)) {
+      throw new Error("URL is not allowed");
+    }
+    const res = await fetch(current, { ...init, redirect: "manual" });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) return res;
+      current = new URL(loc, current).toString();
+      continue;
+    }
+    return res;
+  }
+  throw new Error("Too many redirects");
+}
+

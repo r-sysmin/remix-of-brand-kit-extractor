@@ -637,9 +637,8 @@ async function rehostAsset(
   url: string,
 ): Promise<string | null> {
   try {
-    const { isBlockedSourceUrl } = await import("./url-guard.server");
-    if (isBlockedSourceUrl(url)) return null;
-    const res = await fetch(url, { redirect: "follow" });
+    const { safeFetch } = await import("./url-guard.server");
+    const res = await safeFetch(url);
     if (!res.ok) return null;
     const contentType = res.headers.get("content-type") ?? "application/octet-stream";
     const buf = new Uint8Array(await res.arrayBuffer());

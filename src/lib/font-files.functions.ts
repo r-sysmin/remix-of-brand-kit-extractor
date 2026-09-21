@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { isBlockedSourceUrl } from "@/server/url-guard.server";
+import { safeFetch } from "@/server/url-guard.server";
 
 const InputSchema = z.object({
   urls: z.array(z.string().url()).max(40),
@@ -21,12 +21,10 @@ export const fetchFontFiles = createServerFn({ method: "POST" })
     const files = await Promise.all(
       data.urls.map(async (url): Promise<FontFileResult> => {
         try {
-          if (isBlockedSourceUrl(url)) return { url, ok: false };
           const ctrl = new AbortController();
           const t = setTimeout(() => ctrl.abort(), 8000);
-          const res = await fetch(url, {
+          const res = await safeFetch(url, {
             signal: ctrl.signal,
-            redirect: "follow",
             headers: {
               // Some font CDNs (Google Fonts) return woff2 only when UA suggests modern browser
               "User-Agent":

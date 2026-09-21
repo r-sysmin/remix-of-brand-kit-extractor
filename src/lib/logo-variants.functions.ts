@@ -151,9 +151,8 @@ const InputSchema = z.object({
 });
 
 async function fetchAsDataUrl(url: string): Promise<string> {
-  const { isBlockedSourceUrl } = await import("@/server/url-guard.server");
-  if (isBlockedSourceUrl(url)) throw new Error("Source asset URL is not allowed");
-  const res = await fetch(url, { redirect: "follow" });
+  const { safeFetch } = await import("@/server/url-guard.server");
+  const res = await safeFetch(url);
   if (!res.ok) throw new Error(`Source asset fetch failed (${res.status})`);
   let ct = res.headers.get("content-type") ?? "image/png";
   let bytes: Uint8Array = new Uint8Array(await res.arrayBuffer());
