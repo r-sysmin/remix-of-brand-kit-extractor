@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as CompetitorsRouteImport } from './routes/competitors'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShareShareTokenRouteImport } from './routes/share.$shareToken'
 import { Route as AuthenticatedStartHereRouteImport } from './routes/_authenticated/start-here'
@@ -37,6 +38,10 @@ const CompetitorsRoute = CompetitorsRouteImport.update({
   path: '/competitors',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -48,19 +53,19 @@ const ShareShareTokenRoute = ShareShareTokenRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedStartHereRoute = AuthenticatedStartHereRouteImport.update({
-  id: '/_authenticated/start-here',
+  id: '/start-here',
   path: '/start-here',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
-  id: '/_authenticated/library',
+  id: '/library',
   path: '/library',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDesignRoute = AuthenticatedDesignRouteImport.update({
-  id: '/_authenticated/design',
+  id: '/design',
   path: '/design',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
   Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
@@ -69,9 +74,9 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedKitKitIdRoute = AuthenticatedKitKitIdRouteImport.update({
-  id: '/_authenticated/kit/$kitId',
+  id: '/kit/$kitId',
   path: '/kit/$kitId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDesignHistoryRoute =
   AuthenticatedDesignHistoryRouteImport.update({
@@ -117,6 +122,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/competitors': typeof CompetitorsRoute
   '/keywords': typeof KeywordsRoute
   '/mcp': typeof McpRoute
@@ -161,6 +167,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/competitors'
     | '/keywords'
     | '/mcp'
@@ -176,15 +183,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   CompetitorsRoute: typeof CompetitorsRoute
   KeywordsRoute: typeof KeywordsRoute
   McpRoute: typeof McpRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  AuthenticatedDesignRoute: typeof AuthenticatedDesignRouteWithChildren
-  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
-  AuthenticatedStartHereRoute: typeof AuthenticatedStartHereRoute
   ShareShareTokenRoute: typeof ShareShareTokenRoute
-  AuthenticatedKitKitIdRoute: typeof AuthenticatedKitKitIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -210,6 +214,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompetitorsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -229,21 +240,21 @@ declare module '@tanstack/react-router' {
       path: '/start-here'
       fullPath: '/start-here'
       preLoaderRoute: typeof AuthenticatedStartHereRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/library': {
       id: '/_authenticated/library'
       path: '/library'
       fullPath: '/library'
       preLoaderRoute: typeof AuthenticatedLibraryRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/design': {
       id: '/_authenticated/design'
       path: '/design'
       fullPath: '/design'
       preLoaderRoute: typeof AuthenticatedDesignRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/.well-known/oauth-protected-resource': {
       id: '/.well-known/oauth-protected-resource'
@@ -257,7 +268,7 @@ declare module '@tanstack/react-router' {
       path: '/kit/$kitId'
       fullPath: '/kit/$kitId'
       preLoaderRoute: typeof AuthenticatedKitKitIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/design/history': {
       id: '/_authenticated/design/history'
@@ -301,18 +312,32 @@ const AuthenticatedDesignRouteChildren: AuthenticatedDesignRouteChildren = {
 const AuthenticatedDesignRouteWithChildren =
   AuthenticatedDesignRoute._addFileChildren(AuthenticatedDesignRouteChildren)
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedDesignRoute: typeof AuthenticatedDesignRouteWithChildren
+  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
+  AuthenticatedStartHereRoute: typeof AuthenticatedStartHereRoute
+  AuthenticatedKitKitIdRoute: typeof AuthenticatedKitKitIdRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedDesignRoute: AuthenticatedDesignRouteWithChildren,
+  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
+  AuthenticatedStartHereRoute: AuthenticatedStartHereRoute,
+  AuthenticatedKitKitIdRoute: AuthenticatedKitKitIdRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   CompetitorsRoute: CompetitorsRoute,
   KeywordsRoute: KeywordsRoute,
   McpRoute: McpRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
-  AuthenticatedDesignRoute: AuthenticatedDesignRouteWithChildren,
-  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
-  AuthenticatedStartHereRoute: AuthenticatedStartHereRoute,
   ShareShareTokenRoute: ShareShareTokenRoute,
-  AuthenticatedKitKitIdRoute: AuthenticatedKitKitIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
