@@ -1,6 +1,7 @@
 import { defineTool, ToolError } from "@lovable.dev/mcp-js";
 import { z } from "zod";
 import { createKitRow, loadKitBundle, toKitJson } from "../kit-data";
+import { requireUserId } from "../require-user";
 
 export default defineTool({
   name: "extract_brand_kit",
@@ -13,9 +14,13 @@ export default defineTool({
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
   handler: async ({ url, name }, ctx) => {
+    // This tool writes rows and spends AI/crawl budget: require a verified user
+    // and own every created kit to them.
+    const userId = requireUserId(ctx);
+
     let kitId: string;
     try {
-      kitId = await createKitRow({ sourceUrl: url, name });
+      kitId = await createKitRow({ sourceUrl: url, name, userId });
     } catch (e) {
       throw new ToolError((e as Error).message);
     }
@@ -23,7 +28,7 @@ export default defineTool({
     await ctx.progress({ progress: 1, total: 3, message: "Reading the website" });
 
     const { extractKitImpl } = await import("@/server/extraction.server");
-    const result = await extractKitImpl({ kitId, ownerToken: `mcp:${kitId}`, url });
+    const result = await extractKitImpl({ kitId, ownerToken: userId, url });
     if (!result.ok) {
       throw new ToolError(
         `Extraction failed: ${"error" in result ? result.error : "unknown error"} (kit id ${kitId})`,
@@ -32,7 +37,7 @@ export default defineTool({
 
     await ctx.progress({ progress: 2, total: 3, message: "Collecting the results" });
 
-    const kit = toKitJson(await loadKitBundle(kitId));
+    const kit = toKitJson(await loadKitBundle(kitId, userId));
     const degraded = "degraded" in result && result.degraded;
     return {
       content: [
