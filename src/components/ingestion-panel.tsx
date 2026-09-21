@@ -144,6 +144,11 @@ export function IngestionPanel() {
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
     if (busy) return;
+    if (!user) {
+      toast.error("Sign in to extract a brand kit");
+      navigate({ to: "/auth", search: { next: "/" } });
+      return;
+    }
     if (!ready) {
       toast.error("Initializing — one moment");
       return;
