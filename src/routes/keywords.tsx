@@ -462,9 +462,26 @@ function KeywordsPage() {
                     </tr>
                   </thead>
                   <tbody>
+                    {rows.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className={`${td} italic text-muted-foreground`}
+                        >
+                          No keywords match the current filters.
+                        </td>
+                      </tr>
+                    )}
                     {rows.map((m) => (
                       <tr key={m.phrase} className="border-b border-border-subtle">
-                        <td className={td}>{m.phrase}</td>
+                        <td className={td}>
+                          {m.phrase}
+                          {groupByPhrase.get(m.phrase) && (
+                            <span className="ml-2 rounded-full border border-border-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                              {groupByPhrase.get(m.phrase)}
+                            </span>
+                          )}
+                        </td>
                         {m.found ? (
                           <>
                             <td className={td}>{fmt(m.volume)}</td>
