@@ -358,6 +358,95 @@ function KeywordsPage() {
                 </div>
               </div>
 
+              <div className="mt-5 flex flex-wrap items-end gap-3 rounded-lg border border-border-subtle bg-surface p-3">
+                {(
+                  [
+                    ["minVolume", "Searches from"],
+                    ["maxVolume", "Searches to"],
+                    ["minDifficulty", "Difficulty from"],
+                    ["maxDifficulty", "Difficulty to"],
+                  ] as const
+                ).map(([key, lbl]) => (
+                  <div key={key} className="w-28">
+                    <label className={label} htmlFor={`f-${key}`}>
+                      {lbl}
+                    </label>
+                    <input
+                      id={`f-${key}`}
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      className="mt-1 w-full rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                      value={filters[key]}
+                      onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label className={label} htmlFor="f-intent">
+                    Intent
+                  </label>
+                  <select
+                    id="f-intent"
+                    className="mt-1 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                    value={filters.intent}
+                    onChange={(e) => setFilters((f) => ({ ...f, intent: e.target.value }))}
+                  >
+                    <option value="any">Any</option>
+                    <option value="Informational">Informational</option>
+                    <option value="Commercial">Commercial</option>
+                    <option value="Transactional">Transactional</option>
+                    <option value="Navigational">Navigational</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={label} htmlFor="f-trend">
+                    Trend
+                  </label>
+                  <select
+                    id="f-trend"
+                    className="mt-1 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                    value={filters.trend}
+                    onChange={(e) => setFilters((f) => ({ ...f, trend: e.target.value }))}
+                  >
+                    <option value="any">Any</option>
+                    <option value="rising">Rising</option>
+                    <option value="flat">Steady</option>
+                    <option value="falling">Falling</option>
+                    <option value="unknown">Unknown</option>
+                  </select>
+                </div>
+                {groups.length > 0 && (
+                  <div>
+                    <label className={label} htmlFor="f-group">
+                      Group
+                    </label>
+                    <select
+                      id="f-group"
+                      className="mt-1 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                      value={filters.group}
+                      onChange={(e) => setFilters((f) => ({ ...f, group: e.target.value }))}
+                    >
+                      <option value="any">Any</option>
+                      {groups.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                      <option value="">Ungrouped</option>
+                    </select>
+                  </div>
+                )}
+                {filtersActive && (
+                  <button
+                    className="font-mono text-[11px] uppercase tracking-[0.1em] underline decoration-border-subtle underline-offset-4 hover:decoration-foreground"
+                    onClick={() => setFilters(EMPTY_FILTERS)}
+                  >
+                    Clear filters{hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}
+                  </button>
+                )}
+              </div>
+
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full min-w-[760px] border-collapse">
                   <thead>
