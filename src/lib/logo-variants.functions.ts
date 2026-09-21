@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
+import { assertKitOwner } from "@/server/kit-auth.server";
 import { decode as decodePng, encode as encodePng } from "fast-png";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
