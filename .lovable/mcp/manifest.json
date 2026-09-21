@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "sdk_version": "3.0.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "remix-of-brand-kit-extractor",
+      "version": "0.1.0",
+      "title": "Remix of Brand Kit Extractor"
+    },
+    "tools": [
+      {
+        "name": "extract_brand_kit",
+        "title": "Extract brand kit from a website",
+        "description": "Extract a brand kit from a website URL: colors, fonts, design tokens, logo assets and brand voice. Takes up to a minute. Returns the new kit, including its ID for later reads.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Website URL to extract the brand from."
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Optional name for the new brand kit."
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_brand_kit",
+        "title": "Get brand kit",
+        "description": "Read an existing brand kit by its ID: colors, fonts, design tokens, assets and voice.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "kitId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The brand kit's ID."
+            }
+          },
+          "required": [
+            "kitId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_design_instructions",
+        "title": "Get design instructions",
+        "description": "Get a full markdown design spec for a brand kit — palette, typography, tokens, voice and usage rules — ready to follow when building on-brand work.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "kitId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The brand kit's ID."
+            }
+          },
+          "required": [
+            "kitId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
