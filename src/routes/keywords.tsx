@@ -639,13 +639,31 @@ function KeywordsPage() {
                 <table className="w-full min-w-[760px] border-collapse">
                   <thead>
                     <tr className="border-b border-border-subtle">
-                      <th className={th}>Keyword</th>
-                      <th className={th}>Searches / mo</th>
-                      <th className={th}>Difficulty</th>
-                      <th className={th}>Intent</th>
-                      <th className={th}>12-month trend</th>
-                      <th className={th}>Change</th>
-                      <th className={th}>CPC</th>
+                      {(
+                        [
+                          ["phrase", "Keyword"],
+                          ["group", "Group"],
+                          ["volume", "Searches / mo"],
+                          ["difficulty", "Difficulty"],
+                          ["intent", "Intent"],
+                          ["trendChange", "12-month trend"],
+                          ["cpc", "CPC"],
+                        ] as const
+                      ).map(([key, lbl]) => (
+                        <th key={key} className={th} aria-sort={
+                          sortKey === key ? (sortDir === "asc" ? "ascending" : "descending") : "none"
+                        }>
+                          <button
+                            className="inline-flex items-center gap-1 uppercase tracking-[0.16em] hover:text-foreground"
+                            onClick={() => toggleSort(key)}
+                          >
+                            {lbl}
+                            <span aria-hidden className={sortKey === key ? "" : "opacity-0"}>
+                              {sortDir === "asc" ? "↑" : "↓"}
+                            </span>
+                          </button>
+                        </th>
+                      ))}
                       <th className={th}></th>
                     </tr>
                   </thead>
