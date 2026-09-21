@@ -35,3 +35,13 @@ export const researchKeyword = createServerFn({ method: "POST" })
       return fail(e);
     }
   });
+
+export const keywordDashboard = createServerFn({ method: "POST" })
+  .inputValidator((data) => KeywordDashboardInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    try {
+      return { ok: true as const, result: await keywordDashboardImpl(data) };
+    } catch (e) {
+      return fail(e);
+    }
+  });
