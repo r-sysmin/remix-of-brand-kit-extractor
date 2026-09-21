@@ -290,10 +290,11 @@ function KeywordsPage() {
       if (a.found !== b.found) return a.found ? -1 : 1;
       if (isText) return text(a).localeCompare(text(b)) * dir;
       if (sortKey === "trendChange") {
-        const rank = TREND_RANK[b.trendDirection] - TREND_RANK[a.trendDirection];
-        if (rank !== 0) return rank * dir * -1;
+        const rank =
+          (TREND_RANK[b.trendDirection] ?? 0) - (TREND_RANK[a.trendDirection] ?? 0);
+        if (rank !== 0) return rank * -dir;
       }
-      return ((b[sortKey] as number) - (a[sortKey] as number)) * dir * -1 * -1;
+      return ((b[sortKey] as number) - (a[sortKey] as number)) * -dir;
     });
   }, [result, sortKey, sortDir, filters, groupByPhrase]);
 
