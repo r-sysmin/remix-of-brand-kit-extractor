@@ -49,6 +49,7 @@ export type UploadResult = {
 
 // Server fn that accepts FormData with: kitId, ownerToken, file (repeatable)
 export const uploadBrandSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => {
     if (!(data instanceof FormData)) throw new Error("Expected FormData");
     const kitId = String(data.get("kitId") ?? "");
