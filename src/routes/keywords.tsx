@@ -9,7 +9,9 @@ import {
   Loader2,
   Minus,
   Search,
+  Upload,
   X,
+
 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { keywordDashboard, researchKeyword } from "@/lib/semrush.functions";
