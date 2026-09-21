@@ -321,21 +321,21 @@ export const listKitsByOwner = createServerFn({ method: "POST" })
     };
   });
 
-// Delete many kits at once. Skips kits not owned by the token.
+// Delete many kits at once. Silently skips kits the caller does not own.
 export const bulkDeleteKits = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitIds: z.array(z.string().uuid()).min(1).max(200),
-      ownerToken: z.string().min(1).max(200),
+      ownerToken: z.string().min(1).max(200).optional(),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const admin = getAdmin();
-    // Shared workspace — anyone can delete any kit.
-    void data.ownerToken;
     const { data: rows } = await admin
       .from("brand_kits")
       .select("id")
+      .eq("user_id", context.userId)
       .in("id", data.kitIds);
     const ownedIds = (rows ?? []).map((r: any) => r.id as string);
     if (ownedIds.length === 0) return { deleted: 0 };
