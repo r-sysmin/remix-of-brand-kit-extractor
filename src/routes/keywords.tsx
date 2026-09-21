@@ -144,23 +144,62 @@ function Difficulty({ value }: { value: number }) {
 
 type SortKey = "volume" | "difficulty" | "cpc" | "trendChange";
 
+type Filters = {
+  minVolume: string;
+  maxVolume: string;
+  minDifficulty: string;
+  maxDifficulty: string;
+  intent: string;
+  trend: string;
+  group: string;
+};
+
+const EMPTY_FILTERS: Filters = {
+  minVolume: "",
+  maxVolume: "",
+  minDifficulty: "",
+  maxDifficulty: "",
+  intent: "any",
+  trend: "any",
+  group: "any",
+};
+
+// Parses "keyword | group" lines; group is optional.
+function parseKeywordLine(line: string): { phrase: string; group: string } | null {
+  const [phrase, group] = line.split("|").map((s) => s.trim());
+  if (!phrase || phrase.length < 2) return null;
+  return { phrase, group: group || "" };
+}
+
 function KeywordsPage() {
   const dashboardFn = useServerFn(keywordDashboard);
   const researchFn = useServerFn(researchKeyword);
 
   const [database, setDatabase] = useState("us");
-  const [raw, setRaw] = useState("brand style guide\nbrand guidelines template\nlogo color palette");
+  const [raw, setRaw] = useState(
+    "brand style guide | guides\nbrand guidelines template | guides\nlogo color palette | tools",
+  );
   const [sortKey, setSortKey] = useState<SortKey>("volume");
   const [focus, setFocus] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
-  const keywords = useMemo(
+  const parsed = useMemo(
     () =>
       raw
-        .split(/[\n,]/)
-        .map((k) => k.trim())
-        .filter((k) => k.length >= 2)
+        .split("\n")
+        .map(parseKeywordLine)
+        .filter((k): k is { phrase: string; group: string } => k !== null)
         .slice(0, 10),
     [raw],
+  );
+  const keywords = useMemo(() => parsed.map((k) => k.phrase), [parsed]);
+  const groupByPhrase = useMemo(
+    () => new Map(parsed.filter((k) => k.group).map((k) => [k.phrase, k.group])),
+    [parsed],
+  );
+  const groups = useMemo(
+    () => [...new Set(parsed.map((k) => k.group).filter(Boolean))],
+    [parsed],
   );
 
   const dash = useMutation({
