@@ -9,7 +9,9 @@ import {
   Loader2,
   Minus,
   Search,
+  Upload,
   X,
+
 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { keywordDashboard, researchKeyword } from "@/lib/semrush.functions";
@@ -210,12 +212,135 @@ function parseKeywordLine(line: string): { phrase: string; group: string } | nul
   return { phrase, group: group || "" };
 }
 
+const MAX_KEYWORDS = 10;
+
+// Minimal RFC4180-ish CSV parser (handles quoted cells and embedded commas).
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  const src = text.replace(/\r\n?/g, "\n");
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (quoted) {
+      if (c === '"') {
+        if (src[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else quoted = false;
+      } else cell += c;
+      continue;
+    }
+    if (c === '"') quoted = true;
+    else if (c === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (c === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else cell += c;
+  }
+  row.push(cell);
+  rows.push(row);
+  return rows.filter((r) => r.some((v) => v.trim() !== ""));
+}
+
+type ImportReport = {
+  added: { phrase: string; group: string }[];
+  duplicates: string[];
+  invalid: string[];
+  overflow: string[];
+};
+
+// Validates a CSV of keywords, parses groups, and drops duplicates.
+function importKeywordsFromCsv(text: string, existing: { phrase: string; group: string }[]) {
+  const rows = parseCsv(text);
+  const report: ImportReport = { added: [], duplicates: [], invalid: [], overflow: [] };
+  if (rows.length === 0) return report;
+
+  const head = rows[0]!.map((h) => h.trim().toLowerCase());
+  const keywordCol = head.findIndex((h) => h === "keyword" || h === "keywords" || h === "phrase");
+  const groupCol = head.findIndex((h) => h === "group" || h === "category" || h === "cluster");
+  const hasHeader = keywordCol !== -1;
+  const kIdx = hasHeader ? keywordCol : 0;
+  const gIdx = hasHeader ? groupCol : 1;
+
+  const seen = new Map(existing.map((e) => [e.phrase.toLowerCase(), e]));
+  const total = () => seen.size;
+
+  for (const r of rows.slice(hasHeader ? 1 : 0)) {
+    const rawCell = (r[kIdx] ?? "").trim();
+    if (!rawCell) continue;
+    // A single cell may still carry the "phrase | group" shorthand.
+    const [phrasePart, inlineGroup] = rawCell.split("|").map((s) => s.trim());
+    const phrase = (phrasePart ?? "").replace(/\s+/g, " ");
+    const group = ((gIdx >= 0 ? r[gIdx] : "") ?? "").trim() || inlineGroup || "";
+
+    if (phrase.length < 2 || phrase.length > 120) {
+      report.invalid.push(rawCell);
+      continue;
+    }
+    const key = phrase.toLowerCase();
+    if (seen.has(key)) {
+      report.duplicates.push(phrase);
+      continue;
+    }
+    if (total() >= MAX_KEYWORDS) {
+      report.overflow.push(phrase);
+      continue;
+    }
+    const entry = { phrase, group };
+    seen.set(key, entry);
+    report.added.push(entry);
+  }
+  return report;
+}
+
+function toLines(entries: { phrase: string; group: string }[]) {
+  return entries.map((e) => (e.group ? `${e.phrase} | ${e.group}` : e.phrase)).join("\n");
+}
+
+
 function csvCell(value: string | number) {
   const s = String(value ?? "");
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 const TREND_RANK: Record<string, number> = { rising: 3, flat: 2, falling: 1, unknown: 0 };
+
+type HistoryPoint = { month: string; label: string; volume: number; relative: number };
+
+function HistoryChart({ points }: { points: HistoryPoint[] }) {
+  if (points.length < 2) {
+    return (
+      <p className="font-sans text-[13px] italic text-muted-foreground">
+        Semrush did not return month-by-month history for this phrase.
+      </p>
+    );
+  }
+  const max = Math.max(...points.map((p) => p.volume)) || 1;
+  return (
+    <div className="flex items-end gap-1.5" role="img" aria-label="Estimated monthly searches over the last year">
+      {points.map((p) => (
+        <div key={p.month} className="flex flex-1 flex-col items-center gap-1">
+          <span className="font-mono text-[9px] text-muted-foreground">{fmt(p.volume)}</span>
+          <span
+            className="w-full rounded-t bg-foreground"
+            style={{ height: `${Math.max(3, (p.volume / max) * 96)}px` }}
+            title={`${p.label}: ${fmt(p.volume)} searches`}
+          />
+          <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">
+            {p.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 function KeywordsPage() {
   const dashboardFn = useServerFn(keywordDashboard);
@@ -231,6 +356,20 @@ function KeywordsPage() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState("");
+  const [importReport, setImportReport] = useState<ImportReport | null>(null);
+
+  async function handleCsvFile(file: File | null | undefined) {
+    if (!file) return;
+    const text = await file.text();
+    const current = raw
+      .split("\n")
+      .map(parseKeywordLine)
+      .filter((k): k is { phrase: string; group: string } => k !== null);
+    const report = importKeywordsFromCsv(text, current);
+    setImportReport(report);
+    if (report.added.length > 0) setRaw(toLines([...current, ...report.added]));
+  }
+
 
   useEffect(() => setPresets(loadPresets()), []);
 
@@ -418,6 +557,57 @@ function KeywordsPage() {
                 <span className="font-mono">| group</span> to tag a keyword with a group you can
                 filter by
               </p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border-subtle px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:border-foreground">
+                  <Upload className="h-3.5 w-3.5" aria-hidden />
+                  Import CSV
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      void handleCsvFile(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <span className="font-sans text-[12px] italic text-muted-foreground">
+                  A <span className="font-mono not-italic">keyword</span> column, optionally a{" "}
+                  <span className="font-mono not-italic">group</span> column
+                </span>
+              </div>
+
+              {importReport && (
+                <div className="mt-3 rounded-md border border-border-subtle bg-surface px-3 py-2 font-sans text-[12px] text-muted-foreground">
+                  <p className="text-foreground">
+                    Imported {importReport.added.length} keyword
+                    {importReport.added.length === 1 ? "" : "s"}.
+                  </p>
+                  {importReport.duplicates.length > 0 && (
+                    <p className="mt-1">
+                      Skipped {importReport.duplicates.length} already on the list:{" "}
+                      {importReport.duplicates.slice(0, 5).join(", ")}
+                      {importReport.duplicates.length > 5 ? "…" : ""}
+                    </p>
+                  )}
+                  {importReport.invalid.length > 0 && (
+                    <p className="mt-1">
+                      Skipped {importReport.invalid.length} unusable row
+                      {importReport.invalid.length === 1 ? "" : "s"} (too short or too long):{" "}
+                      {importReport.invalid.slice(0, 5).join(", ")}
+                      {importReport.invalid.length > 5 ? "…" : ""}
+                    </p>
+                  )}
+                  {importReport.overflow.length > 0 && (
+                    <p className="mt-1">
+                      {importReport.overflow.length} left out — the dashboard holds ten keywords at a
+                      time.
+                    </p>
+                  )}
+                </div>
+              )}
+
             </div>
             <div>
               <label className={label} htmlFor="market">
@@ -758,7 +948,62 @@ function KeywordsPage() {
                 <Note>No detail available for this phrase in {marketName}.</Note>
               </div>
             ) : (
-              <div className="mt-6 grid gap-8 md:grid-cols-2">
+              <>
+                <div className="mt-5 grid gap-3 sm:grid-cols-4">
+                  {[
+                    ["Searches / mo", fmt(deep.overview.volume)],
+                    [
+                      "Difficulty",
+                      deep.overview.difficulty ? `${Math.round(deep.overview.difficulty)}/100` : "Unknown",
+                    ],
+                    ["Cost per click", money(deep.overview.cpc)],
+                    [
+                      "12-month change",
+                      deep.overview.trendDirection === "unknown"
+                        ? "Unknown"
+                        : deep.overview.trendDirection === "flat"
+                          ? "Steady"
+                          : `${deep.overview.trendChange > 0 ? "+" : ""}${Math.round(deep.overview.trendChange)}%`,
+                    ],
+                  ].map(([k, v]) => (
+                    <div key={k} className="rounded-lg border border-border-subtle p-4">
+                      <p className={label}>{k}</p>
+                      <p className="mt-2 font-display text-2xl">{v}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-5 flex flex-wrap items-center gap-4">
+                  <span className="flex items-center gap-2">
+                    <span className={label}>Intent</span>
+                    <Intents intents={deep.overview.intents} />
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className={label}>Trend</span>
+                    <TrendBadge
+                      direction={deep.overview.trendDirection as Trend}
+                      change={deep.overview.trendChange}
+                    />
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className={label}>Difficulty</span>
+                    <Difficulty value={deep.overview.difficulty} />
+                  </span>
+                </div>
+
+                <div className="mt-7">
+                  <h3 className="font-display text-xl">Searches month by month</h3>
+                  <p className="mt-1 font-sans text-[12px] italic text-muted-foreground">
+                    Estimated from Semrush's relative 12-month demand curve scaled to the reported
+                    monthly volume.
+                  </p>
+                  <div className="mt-4">
+                    <HistoryChart points={deep.overview.history as HistoryPoint[]} />
+                  </div>
+                </div>
+
+              <div className="mt-8 grid gap-8 md:grid-cols-2">
+
                 {[
                   ["Related phrases", deep.related],
                   ["Questions people ask", deep.questions],
@@ -805,7 +1050,9 @@ function KeywordsPage() {
                   </div>
                 ))}
               </div>
+              </>
             )}
+
           </section>
         )}
 

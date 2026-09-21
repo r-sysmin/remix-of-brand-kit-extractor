@@ -169,6 +169,26 @@ function trendDirection(trend: number[]) {
   return { direction, change };
 }
 
+// Turns the relative 12-month trend into labelled monthly volume estimates.
+// The newest point is last month; relative values are scaled against the
+// reported monthly volume (the peak month ~= the reported volume).
+export function buildHistory(trend: number[], volume: number) {
+  if (trend.length < 2) return [] as Array<{ month: string; label: string; volume: number; relative: number }>;
+  const peak = Math.max(...trend) || 1;
+  const now = new Date();
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  return trend.map((rel, i) => {
+    const d = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - (trend.length - 1 - i), 1));
+    return {
+      month: `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`,
+      label: d.toLocaleDateString("en-US", { month: "short", year: "2-digit", timeZone: "UTC" }),
+      relative: rel,
+      volume: Math.round((rel / peak) * volume),
+    };
+  });
+}
+
+
 export type KeywordMetrics = {
   phrase: string;
   volume: number;
@@ -422,7 +442,12 @@ export async function keywordResearchImpl(input: z.infer<typeof KeywordResearchI
   return {
     database,
     keyword,
-    overview: { ...overview, found: overviewRows.length > 0 },
+    overview: {
+      ...overview,
+      found: overviewRows.length > 0,
+      history: buildHistory(overview.trend, overview.volume),
+    },
+
     related: mapList(related),
     questions: mapList(questions),
   };
