@@ -10,17 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StartHereRouteImport } from './routes/start-here'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as DesignRouteImport } from './routes/design'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShareShareTokenRouteImport } from './routes/share.$shareToken'
 import { Route as KitKitIdRouteImport } from './routes/kit.$kitId'
 import { Route as DesignHistoryRouteImport } from './routes/design.history'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as DesignHistoryDiffRouteImport } from './routes/design.history.diff'
 
 const StartHereRoute = StartHereRouteImport.update({
   id: '/start-here',
   path: '/start-here',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -53,6 +60,12 @@ const DesignHistoryRoute = DesignHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => DesignRoute,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DesignHistoryDiffRoute = DesignHistoryDiffRouteImport.update({
   id: '/diff',
   path: '/diff',
@@ -63,7 +76,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/design': typeof DesignRouteWithChildren
   '/library': typeof LibraryRoute
+  '/mcp': typeof McpRoute
   '/start-here': typeof StartHereRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/design/history': typeof DesignHistoryRouteWithChildren
   '/kit/$kitId': typeof KitKitIdRoute
   '/share/$shareToken': typeof ShareShareTokenRoute
@@ -73,7 +88,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/design': typeof DesignRouteWithChildren
   '/library': typeof LibraryRoute
+  '/mcp': typeof McpRoute
   '/start-here': typeof StartHereRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/design/history': typeof DesignHistoryRouteWithChildren
   '/kit/$kitId': typeof KitKitIdRoute
   '/share/$shareToken': typeof ShareShareTokenRoute
@@ -84,7 +101,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/design': typeof DesignRouteWithChildren
   '/library': typeof LibraryRoute
+  '/mcp': typeof McpRoute
   '/start-here': typeof StartHereRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/design/history': typeof DesignHistoryRouteWithChildren
   '/kit/$kitId': typeof KitKitIdRoute
   '/share/$shareToken': typeof ShareShareTokenRoute
@@ -96,7 +115,9 @@ export interface FileRouteTypes {
     | '/'
     | '/design'
     | '/library'
+    | '/mcp'
     | '/start-here'
+    | '/.well-known/oauth-protected-resource'
     | '/design/history'
     | '/kit/$kitId'
     | '/share/$shareToken'
@@ -106,7 +127,9 @@ export interface FileRouteTypes {
     | '/'
     | '/design'
     | '/library'
+    | '/mcp'
     | '/start-here'
+    | '/.well-known/oauth-protected-resource'
     | '/design/history'
     | '/kit/$kitId'
     | '/share/$shareToken'
@@ -116,7 +139,9 @@ export interface FileRouteTypes {
     | '/'
     | '/design'
     | '/library'
+    | '/mcp'
     | '/start-here'
+    | '/.well-known/oauth-protected-resource'
     | '/design/history'
     | '/kit/$kitId'
     | '/share/$shareToken'
@@ -127,7 +152,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DesignRoute: typeof DesignRouteWithChildren
   LibraryRoute: typeof LibraryRoute
+  McpRoute: typeof McpRoute
   StartHereRoute: typeof StartHereRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   KitKitIdRoute: typeof KitKitIdRoute
   ShareShareTokenRoute: typeof ShareShareTokenRoute
 }
@@ -139,6 +166,13 @@ declare module '@tanstack/react-router' {
       path: '/start-here'
       fullPath: '/start-here'
       preLoaderRoute: typeof StartHereRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -183,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DesignHistoryRouteImport
       parentRoute: typeof DesignRoute
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/design/history/diff': {
       id: '/design/history/diff'
       path: '/diff'
@@ -220,7 +261,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DesignRoute: DesignRouteWithChildren,
   LibraryRoute: LibraryRoute,
+  McpRoute: McpRoute,
   StartHereRoute: StartHereRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   KitKitIdRoute: KitKitIdRoute,
   ShareShareTokenRoute: ShareShareTokenRoute,
 }
