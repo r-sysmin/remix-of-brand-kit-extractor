@@ -144,23 +144,62 @@ function Difficulty({ value }: { value: number }) {
 
 type SortKey = "volume" | "difficulty" | "cpc" | "trendChange";
 
+type Filters = {
+  minVolume: string;
+  maxVolume: string;
+  minDifficulty: string;
+  maxDifficulty: string;
+  intent: string;
+  trend: string;
+  group: string;
+};
+
+const EMPTY_FILTERS: Filters = {
+  minVolume: "",
+  maxVolume: "",
+  minDifficulty: "",
+  maxDifficulty: "",
+  intent: "any",
+  trend: "any",
+  group: "any",
+};
+
+// Parses "keyword | group" lines; group is optional.
+function parseKeywordLine(line: string): { phrase: string; group: string } | null {
+  const [phrase, group] = line.split("|").map((s) => s.trim());
+  if (!phrase || phrase.length < 2) return null;
+  return { phrase, group: group || "" };
+}
+
 function KeywordsPage() {
   const dashboardFn = useServerFn(keywordDashboard);
   const researchFn = useServerFn(researchKeyword);
 
   const [database, setDatabase] = useState("us");
-  const [raw, setRaw] = useState("brand style guide\nbrand guidelines template\nlogo color palette");
+  const [raw, setRaw] = useState(
+    "brand style guide | guides\nbrand guidelines template | guides\nlogo color palette | tools",
+  );
   const [sortKey, setSortKey] = useState<SortKey>("volume");
   const [focus, setFocus] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
-  const keywords = useMemo(
+  const parsed = useMemo(
     () =>
       raw
-        .split(/[\n,]/)
-        .map((k) => k.trim())
-        .filter((k) => k.length >= 2)
+        .split("\n")
+        .map(parseKeywordLine)
+        .filter((k): k is { phrase: string; group: string } => k !== null)
         .slice(0, 10),
     [raw],
+  );
+  const keywords = useMemo(() => parsed.map((k) => k.phrase), [parsed]);
+  const groupByPhrase = useMemo(
+    () => new Map(parsed.filter((k) => k.group).map((k) => [k.phrase, k.group])),
+    [parsed],
+  );
+  const groups = useMemo(
+    () => [...new Set(parsed.map((k) => k.group).filter(Boolean))],
+    [parsed],
   );
 
   const dash = useMutation({
@@ -180,11 +219,31 @@ function KeywordsPage() {
 
   const rows = useMemo(() => {
     if (!result) return [];
-    return [...result.metrics].sort((a, b) => {
+    const minV = filters.minVolume === "" ? null : Number(filters.minVolume);
+    const maxV = filters.maxVolume === "" ? null : Number(filters.maxVolume);
+    const minD = filters.minDifficulty === "" ? null : Number(filters.minDifficulty);
+    const maxD = filters.maxDifficulty === "" ? null : Number(filters.maxDifficulty);
+    const filtered = result.metrics.filter((m) => {
+      if (!m.found) return true;
+      if (minV !== null && m.volume < minV) return false;
+      if (maxV !== null && m.volume > maxV) return false;
+      if (minD !== null && m.difficulty < minD) return false;
+      if (maxD !== null && m.difficulty > maxD) return false;
+      if (filters.intent !== "any" && !m.intents.includes(filters.intent)) return false;
+      if (filters.trend !== "any" && m.trendDirection !== filters.trend) return false;
+      if (filters.group !== "any" && (groupByPhrase.get(m.phrase) ?? "") !== filters.group)
+        return false;
+      return true;
+    });
+    return filtered.sort((a, b) => {
       if (a.found !== b.found) return a.found ? -1 : 1;
       return (b[sortKey] as number) - (a[sortKey] as number);
     });
-  }, [result, sortKey]);
+  }, [result, sortKey, filters, groupByPhrase]);
+
+  const filtersActive =
+    JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
+  const hiddenCount = result ? result.metrics.length - rows.length : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -214,9 +273,12 @@ function KeywordsPage() {
                 className={`${field} mt-2 resize-y`}
                 value={raw}
                 onChange={(e) => setRaw(e.target.value)}
+                placeholder={"brand style guide | guides"}
               />
               <p className="mt-2 font-sans text-[12px] text-muted-foreground">
-                {keywords.length} phrase{keywords.length === 1 ? "" : "s"} ready
+                {keywords.length} phrase{keywords.length === 1 ? "" : "s"} ready — add{" "}
+                <span className="font-mono">| group</span> to tag a keyword with a group you can
+                filter by
               </p>
             </div>
             <div>
@@ -296,6 +358,95 @@ function KeywordsPage() {
                 </div>
               </div>
 
+              <div className="mt-5 flex flex-wrap items-end gap-3 rounded-lg border border-border-subtle bg-surface p-3">
+                {(
+                  [
+                    ["minVolume", "Searches from"],
+                    ["maxVolume", "Searches to"],
+                    ["minDifficulty", "Difficulty from"],
+                    ["maxDifficulty", "Difficulty to"],
+                  ] as const
+                ).map(([key, lbl]) => (
+                  <div key={key} className="w-28">
+                    <label className={label} htmlFor={`f-${key}`}>
+                      {lbl}
+                    </label>
+                    <input
+                      id={`f-${key}`}
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      className="mt-1 w-full rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                      value={filters[key]}
+                      onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label className={label} htmlFor="f-intent">
+                    Intent
+                  </label>
+                  <select
+                    id="f-intent"
+                    className="mt-1 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                    value={filters.intent}
+                    onChange={(e) => setFilters((f) => ({ ...f, intent: e.target.value }))}
+                  >
+                    <option value="any">Any</option>
+                    <option value="Informational">Informational</option>
+                    <option value="Commercial">Commercial</option>
+                    <option value="Transactional">Transactional</option>
+                    <option value="Navigational">Navigational</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={label} htmlFor="f-trend">
+                    Trend
+                  </label>
+                  <select
+                    id="f-trend"
+                    className="mt-1 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                    value={filters.trend}
+                    onChange={(e) => setFilters((f) => ({ ...f, trend: e.target.value }))}
+                  >
+                    <option value="any">Any</option>
+                    <option value="rising">Rising</option>
+                    <option value="flat">Steady</option>
+                    <option value="falling">Falling</option>
+                    <option value="unknown">Unknown</option>
+                  </select>
+                </div>
+                {groups.length > 0 && (
+                  <div>
+                    <label className={label} htmlFor="f-group">
+                      Group
+                    </label>
+                    <select
+                      id="f-group"
+                      className="mt-1 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                      value={filters.group}
+                      onChange={(e) => setFilters((f) => ({ ...f, group: e.target.value }))}
+                    >
+                      <option value="any">Any</option>
+                      {groups.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                      <option value="">Ungrouped</option>
+                    </select>
+                  </div>
+                )}
+                {filtersActive && (
+                  <button
+                    className="font-mono text-[11px] uppercase tracking-[0.1em] underline decoration-border-subtle underline-offset-4 hover:decoration-foreground"
+                    onClick={() => setFilters(EMPTY_FILTERS)}
+                  >
+                    Clear filters{hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}
+                  </button>
+                )}
+              </div>
+
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full min-w-[760px] border-collapse">
                   <thead>
@@ -311,9 +462,26 @@ function KeywordsPage() {
                     </tr>
                   </thead>
                   <tbody>
+                    {rows.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className={`${td} italic text-muted-foreground`}
+                        >
+                          No keywords match the current filters.
+                        </td>
+                      </tr>
+                    )}
                     {rows.map((m) => (
                       <tr key={m.phrase} className="border-b border-border-subtle">
-                        <td className={td}>{m.phrase}</td>
+                        <td className={td}>
+                          {m.phrase}
+                          {groupByPhrase.get(m.phrase) && (
+                            <span className="ml-2 rounded-full border border-border-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                              {groupByPhrase.get(m.phrase)}
+                            </span>
+                          )}
+                        </td>
                         {m.found ? (
                           <>
                             <td className={td}>{fmt(m.volume)}</td>
