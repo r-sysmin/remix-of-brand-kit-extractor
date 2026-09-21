@@ -680,12 +680,14 @@ function KeywordsPage() {
                     )}
                     {rows.map((m) => (
                       <tr key={m.phrase} className="border-b border-border-subtle">
+                        <td className={td}>{m.phrase}</td>
                         <td className={td}>
-                          {m.phrase}
-                          {groupByPhrase.get(m.phrase) && (
-                            <span className="ml-2 rounded-full border border-border-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                          {groupByPhrase.get(m.phrase) ? (
+                            <span className="rounded-full border border-border-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
                               {groupByPhrase.get(m.phrase)}
                             </span>
+                          ) : (
+                            <span className="font-sans text-[12px] text-muted-foreground">—</span>
                           )}
                         </td>
                         {m.found ? (
@@ -698,13 +700,13 @@ function KeywordsPage() {
                               <Intents intents={m.intents} />
                             </td>
                             <td className={`${td} text-foreground`}>
-                              <Sparkline values={m.trend} />
-                            </td>
-                            <td className={td}>
-                              <TrendBadge
-                                direction={m.trendDirection as Trend}
-                                change={m.trendChange}
-                              />
+                              <span className="flex items-center gap-2">
+                                <Sparkline values={m.trend} />
+                                <TrendBadge
+                                  direction={m.trendDirection as Trend}
+                                  change={m.trendChange}
+                                />
+                              </span>
                             </td>
                             <td className={td}>{money(m.cpc)}</td>
                             <td className={td}>
@@ -718,7 +720,7 @@ function KeywordsPage() {
                             </td>
                           </>
                         ) : (
-                          <td className={`${td} italic text-muted-foreground`} colSpan={7}>
+                          <td className={`${td} italic text-muted-foreground`} colSpan={6}>
                             No data for this phrase in {marketName}.
                           </td>
                         )}
