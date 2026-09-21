@@ -1,8 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, Loader2, Minus, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Download,
+  Loader2,
+  Minus,
+  Search,
+  X,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { keywordDashboard, researchKeyword } from "@/lib/semrush.functions";
 
@@ -142,7 +150,16 @@ function Difficulty({ value }: { value: number }) {
   );
 }
 
-type SortKey = "volume" | "difficulty" | "cpc" | "trendChange";
+type SortKey =
+  | "phrase"
+  | "volume"
+  | "difficulty"
+  | "intent"
+  | "trendChange"
+  | "cpc"
+  | "group";
+
+type SortDir = "asc" | "desc";
 
 type Filters = {
   minVolume: string;
@@ -164,12 +181,41 @@ const EMPTY_FILTERS: Filters = {
   group: "any",
 };
 
+type Preset = { name: string; filters: Filters; sortKey: SortKey; sortDir: SortDir };
+
+const PRESETS_KEY = "branddna.keyword_presets";
+
+function loadPresets(): Preset[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(PRESETS_KEY) ?? "[]");
+    return Array.isArray(parsed) ? (parsed as Preset[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePresets(presets: Preset[]) {
+  try {
+    window.localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+  } catch {
+    /* storage unavailable — presets stay in memory for this session */
+  }
+}
+
 // Parses "keyword | group" lines; group is optional.
 function parseKeywordLine(line: string): { phrase: string; group: string } | null {
   const [phrase, group] = line.split("|").map((s) => s.trim());
   if (!phrase || phrase.length < 2) return null;
   return { phrase, group: group || "" };
 }
+
+function csvCell(value: string | number) {
+  const s = String(value ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+const TREND_RANK: Record<string, number> = { rising: 3, flat: 2, falling: 1, unknown: 0 };
 
 function KeywordsPage() {
   const dashboardFn = useServerFn(keywordDashboard);
@@ -180,8 +226,13 @@ function KeywordsPage() {
     "brand style guide | guides\nbrand guidelines template | guides\nlogo color palette | tools",
   );
   const [sortKey, setSortKey] = useState<SortKey>("volume");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [focus, setFocus] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetName, setPresetName] = useState("");
+
+  useEffect(() => setPresets(loadPresets()), []);
 
   const parsed = useMemo(
     () =>
@@ -235,15 +286,102 @@ function KeywordsPage() {
         return false;
       return true;
     });
-    return filtered.sort((a, b) => {
+    const text = (m: (typeof filtered)[number]) =>
+      sortKey === "phrase"
+        ? m.phrase
+        : sortKey === "group"
+          ? groupByPhrase.get(m.phrase) ?? ""
+          : m.intents.join(", ");
+    const isText = sortKey === "phrase" || sortKey === "group" || sortKey === "intent";
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
       if (a.found !== b.found) return a.found ? -1 : 1;
-      return (b[sortKey] as number) - (a[sortKey] as number);
+      if (isText) return text(a).localeCompare(text(b)) * dir;
+      if (sortKey === "trendChange") {
+        const rank =
+          (TREND_RANK[b.trendDirection] ?? 0) - (TREND_RANK[a.trendDirection] ?? 0);
+        if (rank !== 0) return rank * -dir;
+      }
+      return ((b[sortKey] as number) - (a[sortKey] as number)) * -dir;
     });
-  }, [result, sortKey, filters, groupByPhrase]);
+  }, [result, sortKey, sortDir, filters, groupByPhrase]);
 
   const filtersActive =
     JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
   const hiddenCount = result ? result.metrics.length - rows.length : 0;
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "phrase" || key === "group" || key === "intent" ? "asc" : "desc");
+    }
+  }
+
+  function exportCsv() {
+    const header = [
+      "Keyword",
+      "Group",
+      "Searches per month",
+      "Difficulty",
+      "Intent",
+      "Trend",
+      "Trend change %",
+      "CPC",
+      "Market",
+    ];
+    const lines = rows.map((m) =>
+      [
+        m.phrase,
+        groupByPhrase.get(m.phrase) ?? "",
+        m.found ? m.volume : "",
+        m.found && m.difficulty ? Math.round(m.difficulty) : "",
+        m.intents.join(", "),
+        m.found ? m.trendDirection : "",
+        m.found && m.trendDirection !== "unknown" ? Math.round(m.trendChange) : "",
+        m.found ? m.cpc.toFixed(2) : "",
+        database,
+      ]
+        .map(csvCell)
+        .join(","),
+    );
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `keywords-${database}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function saveCurrentPreset() {
+    const name = presetName.trim();
+    if (!name) return;
+    const next = [
+      ...presets.filter((p) => p.name.toLowerCase() !== name.toLowerCase()),
+      { name, filters, sortKey, sortDir },
+    ];
+    setPresets(next);
+    savePresets(next);
+    setPresetName("");
+  }
+
+  function applyPreset(name: string) {
+    const p = presets.find((x) => x.name === name);
+    if (!p) return;
+    setFilters({ ...EMPTY_FILTERS, ...p.filters });
+    setSortKey(p.sortKey);
+    setSortDir(p.sortDir);
+  }
+
+  function deletePreset(name: string) {
+    const next = presets.filter((p) => p.name !== name);
+    setPresets(next);
+    savePresets(next);
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -340,22 +478,80 @@ function KeywordsPage() {
             <section className={`${card} mb-10`}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="font-display text-2xl">Every keyword</h2>
-                <div className="flex items-center gap-2">
-                  <label className={label} htmlFor="sort">
-                    Sort by
+                <button
+                  className="inline-flex items-center gap-2 rounded-full border border-border-subtle px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:border-foreground disabled:opacity-40"
+                  onClick={exportCsv}
+                  disabled={rows.length === 0}
+                >
+                  <Download className="h-3.5 w-3.5" aria-hidden />
+                  Export CSV ({rows.length})
+                </button>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-end gap-3 rounded-lg border border-border-subtle bg-surface p-3">
+                <div>
+                  <label className={label} htmlFor="preset-pick">
+                    Saved view
                   </label>
                   <select
-                    id="sort"
-                    className="rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value as SortKey)}
+                    id="preset-pick"
+                    className="mt-1 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                    value=""
+                    onChange={(e) => e.target.value && applyPreset(e.target.value)}
                   >
-                    <option value="volume">Search volume</option>
-                    <option value="difficulty">Difficulty</option>
-                    <option value="cpc">Cost per click</option>
-                    <option value="trendChange">Trend</option>
+                    <option value="">
+                      {presets.length === 0 ? "None saved yet" : "Apply a saved view…"}
+                    </option>
+                    {presets.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
+                <div>
+                  <label className={label} htmlFor="preset-name">
+                    Save current view as
+                  </label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      id="preset-name"
+                      className="w-40 rounded-md border border-border-subtle bg-card px-2 py-1 font-sans text-[13px]"
+                      value={presetName}
+                      placeholder="e.g. easy wins"
+                      onChange={(e) => setPresetName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && saveCurrentPreset()}
+                    />
+                    <button
+                      className="font-mono text-[11px] uppercase tracking-[0.1em] underline decoration-border-subtle underline-offset-4 hover:decoration-foreground disabled:opacity-40"
+                      onClick={saveCurrentPreset}
+                      disabled={!presetName.trim()}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+                {presets.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {presets.map((p) => (
+                      <span
+                        key={p.name}
+                        className="inline-flex items-center gap-1 rounded-full border border-border-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em]"
+                      >
+                        <button className="hover:underline" onClick={() => applyPreset(p.name)}>
+                          {p.name}
+                        </button>
+                        <button
+                          aria-label={`Delete saved view ${p.name}`}
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => deletePreset(p.name)}
+                        >
+                          <X className="h-3 w-3" aria-hidden />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 flex flex-wrap items-end gap-3 rounded-lg border border-border-subtle bg-surface p-3">
@@ -451,13 +647,31 @@ function KeywordsPage() {
                 <table className="w-full min-w-[760px] border-collapse">
                   <thead>
                     <tr className="border-b border-border-subtle">
-                      <th className={th}>Keyword</th>
-                      <th className={th}>Searches / mo</th>
-                      <th className={th}>Difficulty</th>
-                      <th className={th}>Intent</th>
-                      <th className={th}>12-month trend</th>
-                      <th className={th}>Change</th>
-                      <th className={th}>CPC</th>
+                      {(
+                        [
+                          ["phrase", "Keyword"],
+                          ["group", "Group"],
+                          ["volume", "Searches / mo"],
+                          ["difficulty", "Difficulty"],
+                          ["intent", "Intent"],
+                          ["trendChange", "12-month trend"],
+                          ["cpc", "CPC"],
+                        ] as const
+                      ).map(([key, lbl]) => (
+                        <th key={key} className={th} aria-sort={
+                          sortKey === key ? (sortDir === "asc" ? "ascending" : "descending") : "none"
+                        }>
+                          <button
+                            className="inline-flex items-center gap-1 uppercase tracking-[0.16em] hover:text-foreground"
+                            onClick={() => toggleSort(key)}
+                          >
+                            {lbl}
+                            <span aria-hidden className={sortKey === key ? "" : "opacity-0"}>
+                              {sortDir === "asc" ? "↑" : "↓"}
+                            </span>
+                          </button>
+                        </th>
+                      ))}
                       <th className={th}></th>
                     </tr>
                   </thead>
@@ -474,12 +688,14 @@ function KeywordsPage() {
                     )}
                     {rows.map((m) => (
                       <tr key={m.phrase} className="border-b border-border-subtle">
+                        <td className={td}>{m.phrase}</td>
                         <td className={td}>
-                          {m.phrase}
-                          {groupByPhrase.get(m.phrase) && (
-                            <span className="ml-2 rounded-full border border-border-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                          {groupByPhrase.get(m.phrase) ? (
+                            <span className="rounded-full border border-border-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
                               {groupByPhrase.get(m.phrase)}
                             </span>
+                          ) : (
+                            <span className="font-sans text-[12px] text-muted-foreground">—</span>
                           )}
                         </td>
                         {m.found ? (
@@ -492,13 +708,13 @@ function KeywordsPage() {
                               <Intents intents={m.intents} />
                             </td>
                             <td className={`${td} text-foreground`}>
-                              <Sparkline values={m.trend} />
-                            </td>
-                            <td className={td}>
-                              <TrendBadge
-                                direction={m.trendDirection as Trend}
-                                change={m.trendChange}
-                              />
+                              <span className="flex items-center gap-2">
+                                <Sparkline values={m.trend} />
+                                <TrendBadge
+                                  direction={m.trendDirection as Trend}
+                                  change={m.trendChange}
+                                />
+                              </span>
                             </td>
                             <td className={td}>{money(m.cpc)}</td>
                             <td className={td}>
@@ -512,7 +728,7 @@ function KeywordsPage() {
                             </td>
                           </>
                         ) : (
-                          <td className={`${td} italic text-muted-foreground`} colSpan={7}>
+                          <td className={`${td} italic text-muted-foreground`} colSpan={6}>
                             No data for this phrase in {marketName}.
                           </td>
                         )}
