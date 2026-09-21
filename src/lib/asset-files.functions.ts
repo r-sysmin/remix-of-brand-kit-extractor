@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { isBlockedSourceUrl } from "@/server/url-guard.server";
+import { safeFetch } from "@/server/url-guard.server";
 
 const InputSchema = z.object({
   urls: z.array(z.string().url()).max(60),
@@ -22,12 +22,10 @@ export const fetchAssetFiles = createServerFn({ method: "POST" })
     const files = await Promise.all(
       data.urls.map(async (url): Promise<AssetFileResult> => {
         try {
-          if (isBlockedSourceUrl(url)) return { url, ok: false };
           const ctrl = new AbortController();
           const t = setTimeout(() => ctrl.abort(), 10000);
-          const res = await fetch(url, {
+          const res = await safeFetch(url, {
             signal: ctrl.signal,
-            redirect: "follow",
             headers: {
               "User-Agent":
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",

@@ -1,6 +1,6 @@
 // Server-side helpers — calls Lovable AI Gateway and Firecrawl.
 // Never imported from client code.
-import { isBlockedSourceUrl } from "./url-guard.server";
+import { safeFetch } from "./url-guard.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -72,9 +72,8 @@ function htmlToMarkdown(html: string, url: string) {
 }
 
 async function directScrape(url: string) {
-  if (isBlockedSourceUrl(url)) throw new Error("Source URL is not allowed");
   const timeout = timeoutSignal(DIRECT_SCRAPE_TIMEOUT_MS);
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     headers: {
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "Accept-Language": "en-US,en;q=0.9",

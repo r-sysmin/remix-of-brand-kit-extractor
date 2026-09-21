@@ -21,7 +21,11 @@ export const extractKit = createServerFn({ method: "POST" })
 export const generateSampleCopy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => GenerateSampleCopyInputSchema.parse(data))
-  .handler(async ({ data }) => generateSampleCopyImpl(data));
+  .handler(async ({ data, context }) => {
+    // Owner-only: brand voice is private data and this call spends AI credits.
+    await assertKitOwner(data.kitId, context.userId);
+    return generateSampleCopyImpl(data);
+  });
 
 export const harvestMoreAssets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
