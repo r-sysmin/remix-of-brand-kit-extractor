@@ -442,7 +442,12 @@ export async function keywordResearchImpl(input: z.infer<typeof KeywordResearchI
   return {
     database,
     keyword,
-    overview: { ...overview, found: overviewRows.length > 0 },
+    overview: {
+      ...overview,
+      found: overviewRows.length > 0,
+      history: buildHistory(overview.trend, overview.volume),
+    },
+
     related: mapList(related),
     questions: mapList(questions),
   };
