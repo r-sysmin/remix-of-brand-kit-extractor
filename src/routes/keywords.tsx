@@ -358,17 +358,71 @@ function KeywordsPage() {
   const [presetName, setPresetName] = useState("");
   const [importReport, setImportReport] = useState<ImportReport | null>(null);
 
-  async function handleCsvFile(file: File | null | undefined) {
-    if (!file) return;
-    const text = await file.text();
-    const current = raw
+  const [clusterNote, setClusterNote] = useState<string | null>(null);
+
+  function currentEntries() {
+    return raw
       .split("\n")
       .map(parseKeywordLine)
       .filter((k): k is { phrase: string; group: string } => k !== null);
+  }
+
+  // Intent data from the last dashboard run sharpens the cluster names.
+  function intentMap() {
+    const map = new Map<string, string[]>();
+    for (const m of result?.metrics ?? []) map.set(m.phrase, m.intents);
+    return map;
+  }
+
+  // Clusters phrases by topic + intent. Existing manual groups are kept unless
+  // `regroupAll` is set, so an auto-run never wipes hand-made labels.
+  function autoGroup(entries: { phrase: string; group: string }[], regroupAll: boolean) {
+    const targets = entries.filter((e) => regroupAll || !e.group);
+    if (targets.length === 0) return { entries, clustered: 0, groups: 0 };
+    const clustered = clusterKeywords(
+      targets.map((e) => e.phrase),
+      intentMap(),
+    );
+    const byPhrase = new Map(clustered.map((c) => [c.phrase, c.group]));
+    const next = entries.map((e) => ({
+      phrase: e.phrase,
+      group: byPhrase.get(e.phrase) ?? e.group,
+    }));
+    return {
+      entries: next,
+      clustered: targets.length,
+      groups: new Set(clustered.map((c) => c.group)).size,
+    };
+  }
+
+  function runAutoGroup(regroupAll: boolean) {
+    const res = autoGroup(currentEntries(), regroupAll);
+    setRaw(toLines(res.entries));
+    setClusterNote(
+      res.clustered === 0
+        ? "Every keyword already has a group — use “Regroup all” to rebuild them."
+        : `Sorted ${res.clustered} keyword${res.clustered === 1 ? "" : "s"} into ${res.groups} topic group${res.groups === 1 ? "" : "s"}.`,
+    );
+  }
+
+  async function handleCsvFile(file: File | null | undefined) {
+    if (!file) return;
+    const text = await file.text();
+    const current = currentEntries();
     const report = importKeywordsFromCsv(text, current);
     setImportReport(report);
-    if (report.added.length > 0) setRaw(toLines([...current, ...report.added]));
+    if (report.added.length > 0) {
+      // Imported rows without a group column get clustered automatically.
+      const res = autoGroup([...current, ...report.added], false);
+      setRaw(toLines(res.entries));
+      setClusterNote(
+        res.clustered > 0
+          ? `Grouped ${res.clustered} imported keyword${res.clustered === 1 ? "" : "s"} by topic.`
+          : null,
+      );
+    }
   }
+
 
 
   useEffect(() => setPresets(loadPresets()), []);
