@@ -354,6 +354,20 @@ function KeywordsPage() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState("");
+  const [importReport, setImportReport] = useState<ImportReport | null>(null);
+
+  async function handleCsvFile(file: File | null | undefined) {
+    if (!file) return;
+    const text = await file.text();
+    const current = raw
+      .split("\n")
+      .map(parseKeywordLine)
+      .filter((k): k is { phrase: string; group: string } => k !== null);
+    const report = importKeywordsFromCsv(text, current);
+    setImportReport(report);
+    if (report.added.length > 0) setRaw(toLines([...current, ...report.added]));
+  }
+
 
   useEffect(() => setPresets(loadPresets()), []);
 
