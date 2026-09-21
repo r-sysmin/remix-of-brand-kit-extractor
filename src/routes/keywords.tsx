@@ -1048,7 +1048,9 @@ function KeywordsPage() {
                   </div>
                 ))}
               </div>
+              </>
             )}
+
           </section>
         )}
 
