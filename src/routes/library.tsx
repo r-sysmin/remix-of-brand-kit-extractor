@@ -17,6 +17,25 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/library")({
+  head: () => ({
+    meta: [
+      { title: "Library — Brand DNA" },
+      {
+        name: "description",
+        content:
+          "Every brand kit you've extracted, in one place: palettes, typography, logos and voice, ready to reopen or export.",
+      },
+      { property: "og:title", content: "Library — Brand DNA" },
+      {
+        property: "og:description",
+        content:
+          "Every brand kit you've extracted, in one place: palettes, typography, logos and voice, ready to reopen or export.",
+      },
+      { property: "og:url", content: "/library" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "/library" }],
+  }),
   component: LibraryPage,
 });
 
@@ -331,7 +350,7 @@ function LibraryPage() {
                     {k.logoUrl ? (
                       <img
                         src={k.logoUrl}
-                        alt=""
+                        alt={`${k.name} logo`}
                         className="max-h-12 max-w-12 object-contain"
                         loading="lazy"
                       />

@@ -8,6 +8,25 @@ import { getSharedKit } from "@/lib/shared-kit.functions";
 import { TokensSection, VoiceSection } from "@/routes/kit.$kitId";
 
 export const Route = createFileRoute("/share/$shareToken")({
+  head: ({ params }) => ({
+    meta: [
+      { title: "Shared brand kit — Brand DNA" },
+      {
+        name: "description",
+        content:
+          "A shared brand kit: colors, typography, logos, voice and design tokens, extracted with Brand DNA.",
+      },
+      { property: "og:title", content: "Shared brand kit — Brand DNA" },
+      {
+        property: "og:description",
+        content:
+          "A shared brand kit: colors, typography, logos, voice and design tokens, extracted with Brand DNA.",
+      },
+      { property: "og:url", content: `/share/${params.shareToken}` },
+      { property: "og:type", content: "article" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: SharedKitPage,
 });
 
