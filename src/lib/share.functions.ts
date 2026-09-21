@@ -40,22 +40,8 @@ export const setKitShare = createServerFn({ method: "POST" })
     return updated as { share_token: string | null; is_public: boolean };
   });
 
-// Claim an anonymous kit when a user signs in.
-export const claimKit = createServerFn({ method: "POST" })
-  .inputValidator(
-    z.object({
-      kitId: z.string().uuid(),
-      anonToken: z.string().min(1).max(200),
-      userId: z.string().uuid(),
-    }).parse,
-  )
-  .handler(async ({ data }) => {
-    const admin = getAdmin();
-    const { error } = await admin
-      .from("brand_kits")
-      .update({ user_id: data.userId, anon_token: null })
-      .eq("id", data.kitId)
-      .eq("anon_token", data.anonToken);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+// NOTE: a `claimKit` server function used to live here. It reassigned a kit's
+// owner to any client-supplied user id, gated only on knowing the row's
+// anon_token — a spoofable, self-attested identity claim. It was unused by the
+// UI and has been removed. If kit claiming is reintroduced, derive the user id
+// from a verified session (requireSupabaseAuth), never from request input.
