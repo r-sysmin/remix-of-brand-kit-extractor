@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
+import { assertKitOwner } from "@/server/kit-auth.server";
 
 const STALE_PROCESSING_MS = 90 * 1000;
 
@@ -10,27 +12,30 @@ export const warmServer = createServerFn({ method: "GET" }).handler(async () => 
   return { ok: true, t: Date.now() };
 });
 
-// Create a kit row (anonymous or owned). Returns kit id + anon token if anon.
+// Create a kit row owned by the signed-in user. Ownership comes from the
+// verified session, never from request input.
 export const createKit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      ownerToken: z.string().min(1).max(200), // anon token from client OR auth user id
-      isAuthed: z.boolean(),
+      // Accepted for backward compatibility with older clients; ignored.
+      ownerToken: z.string().min(1).max(200).optional(),
+      isAuthed: z.boolean().optional(),
       sourceType: z.enum(["url", "upload", "manual", "mixed"]),
       sourceUrl: z.string().url().optional(),
       name: z.string().max(120).optional(),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const admin = getAdmin();
     const row: Record<string, any> = {
       name: data.name ?? "Untitled brand kit",
       source_type: data.sourceType,
       source_url: data.sourceUrl ?? null,
       status: "pending",
+      user_id: context.userId,
+      anon_token: null,
     };
-    if (data.isAuthed) row.user_id = data.ownerToken;
-    else row.anon_token = data.ownerToken;
 
     const { data: created, error } = await admin
       .from("brand_kits")
@@ -41,8 +46,10 @@ export const createKit = createServerFn({ method: "POST" })
     return { id: (created as any).id as string };
   });
 
-// Fetch a kit + all related data, gated by owner token or share token.
+// Fetch a kit + all related data. Owner-only; public share links are served by
+// `getSharedKit` instead.
 export const getKit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
@@ -50,16 +57,9 @@ export const getKit = createServerFn({ method: "POST" })
       shareToken: z.string().min(1).max(200).optional(),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const admin = getAdmin();
-    const { data: kit } = await admin
-      .from("brand_kits")
-      .select("*")
-      .eq("id", data.kitId)
-      .maybeSingle();
-    if (!kit) throw new Error("Kit not found");
-    let k = kit as any;
-    // Personal app — no auth gate. Anyone with the link can view/edit.
+    let k = (await assertKitOwner(data.kitId, context.userId)) as any;
 
     const updatedAt = k.updated_at ? Date.parse(k.updated_at) : Date.now();
     if (
@@ -83,18 +83,9 @@ export const getKit = createServerFn({ method: "POST" })
     ]);
 
     // Never ship ownership secrets to the browser: anon_token / user_id can be
-    // replayed to pass owner checks, and share_token is a capability URL.
-    const isOwner = Boolean(
-      data.ownerToken &&
-        ((k.user_id && k.user_id === data.ownerToken) ||
-          (k.anon_token && k.anon_token === data.ownerToken)),
-    );
+    // replayed, and share_token is a capability URL.
     const { anon_token: _at, user_id: _uid, share_token: st, ...safeKit } = k;
-    const sanitized = {
-      ...safeKit,
-      isOwner,
-      share_token: isOwner ? (st ?? null) : null,
-    };
+    const sanitized = { ...safeKit, isOwner: true, share_token: st ?? null };
 
     return {
       kit: sanitized,
@@ -106,30 +97,18 @@ export const getKit = createServerFn({ method: "POST" })
     };
   });
 
-// Helper: verify ownership of a kit
-async function loadOwnedKit(kitId: string, ownerToken: string) {
-  const admin = getAdmin();
-  const { data: kit } = await admin
-    .from("brand_kits")
-    .select("*")
-    .eq("id", kitId)
-    .maybeSingle();
-  if (!kit) throw new Error("Kit not found");
-  // Personal app — no ownership gate.
-  return kit as any;
-}
-
 export const renameKit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
-      ownerToken: z.string().min(1).max(200),
+      ownerToken: z.string().min(1).max(200).optional(),
       name: z.string().min(1).max(120),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const admin = getAdmin();
-    await loadOwnedKit(data.kitId, data.ownerToken);
+    await assertKitOwner(data.kitId, context.userId);
     const { error } = await admin
       .from("brand_kits")
       .update({ name: data.name })
