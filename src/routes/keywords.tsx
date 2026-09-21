@@ -218,8 +218,13 @@ function KeywordsPage() {
     "brand style guide | guides\nbrand guidelines template | guides\nlogo color palette | tools",
   );
   const [sortKey, setSortKey] = useState<SortKey>("volume");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [focus, setFocus] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetName, setPresetName] = useState("");
+
+  useEffect(() => setPresets(loadPresets()), []);
 
   const parsed = useMemo(
     () =>
