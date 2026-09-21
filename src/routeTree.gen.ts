@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as CompetitorsRouteImport } from './routes/competitors'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShareShareTokenRouteImport } from './routes/share.$shareToken'
@@ -36,6 +37,11 @@ const KeywordsRoute = KeywordsRouteImport.update({
 const CompetitorsRoute = CompetitorsRouteImport.update({
   id: '/competitors',
   path: '/competitors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -93,6 +99,7 @@ const AuthenticatedDesignHistoryDiffRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/competitors': typeof CompetitorsRoute
   '/keywords': typeof KeywordsRoute
   '/mcp': typeof McpRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/competitors': typeof CompetitorsRoute
   '/keywords': typeof KeywordsRoute
   '/mcp': typeof McpRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/competitors': typeof CompetitorsRoute
   '/keywords': typeof KeywordsRoute
   '/mcp': typeof McpRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/competitors'
     | '/keywords'
     | '/mcp'
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/competitors'
     | '/keywords'
     | '/mcp'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/auth'
     | '/competitors'
     | '/keywords'
     | '/mcp'
@@ -184,6 +196,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
   CompetitorsRoute: typeof CompetitorsRoute
   KeywordsRoute: typeof KeywordsRoute
   McpRoute: typeof McpRoute
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       path: '/competitors'
       fullPath: '/competitors'
       preLoaderRoute: typeof CompetitorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -332,6 +352,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
   CompetitorsRoute: CompetitorsRoute,
   KeywordsRoute: KeywordsRoute,
   McpRoute: McpRoute,
