@@ -82,8 +82,22 @@ export const getKit = createServerFn({ method: "POST" })
       admin.from("kit_voice").select("*").eq("kit_id", data.kitId).maybeSingle(),
     ]);
 
+    // Never ship ownership secrets to the browser: anon_token / user_id can be
+    // replayed to pass owner checks, and share_token is a capability URL.
+    const isOwner = Boolean(
+      data.ownerToken &&
+        ((k.user_id && k.user_id === data.ownerToken) ||
+          (k.anon_token && k.anon_token === data.ownerToken)),
+    );
+    const { anon_token: _at, user_id: _uid, share_token: st, ...safeKit } = k;
+    const sanitized = {
+      ...safeKit,
+      isOwner,
+      share_token: isOwner ? (st ?? null) : null,
+    };
+
     return {
-      kit: k,
+      kit: sanitized,
       colors: colors.data ?? [],
       fonts: fonts.data ?? [],
       tokens: tokens.data ?? [],
