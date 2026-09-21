@@ -64,17 +64,12 @@ export const uploadBrandSource = createServerFn({ method: "POST" })
     }
     return { kitId, ownerToken, files };
   })
-  .handler(async ({ data }): Promise<UploadResult> => {
+  .handler(async ({ data, context }): Promise<UploadResult> => {
     const admin = getAdmin();
 
-    // Shared workspace — confirm kit exists; do not gate on ownership.
-    void data.ownerToken;
-    const { data: kit, error: kitErr } = await admin
-      .from("brand_kits")
-      .select("id")
-      .eq("id", data.kitId)
-      .maybeSingle();
-    if (kitErr || !kit) throw new Error("Kit not found");
+    // Owner-only: ownership comes from the verified session, not the request.
+    await assertKitOwner(data.kitId, context.userId);
+
 
     const imageUrls: string[] = [];
     const pdfTexts: string[] = [];
