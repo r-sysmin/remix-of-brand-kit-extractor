@@ -555,6 +555,57 @@ function KeywordsPage() {
                 <span className="font-mono">| group</span> to tag a keyword with a group you can
                 filter by
               </p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border-subtle px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:border-foreground">
+                  <Upload className="h-3.5 w-3.5" aria-hidden />
+                  Import CSV
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      void handleCsvFile(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <span className="font-sans text-[12px] italic text-muted-foreground">
+                  A <span className="font-mono not-italic">keyword</span> column, optionally a{" "}
+                  <span className="font-mono not-italic">group</span> column
+                </span>
+              </div>
+
+              {importReport && (
+                <div className="mt-3 rounded-md border border-border-subtle bg-surface px-3 py-2 font-sans text-[12px] text-muted-foreground">
+                  <p className="text-foreground">
+                    Imported {importReport.added.length} keyword
+                    {importReport.added.length === 1 ? "" : "s"}.
+                  </p>
+                  {importReport.duplicates.length > 0 && (
+                    <p className="mt-1">
+                      Skipped {importReport.duplicates.length} already on the list:{" "}
+                      {importReport.duplicates.slice(0, 5).join(", ")}
+                      {importReport.duplicates.length > 5 ? "…" : ""}
+                    </p>
+                  )}
+                  {importReport.invalid.length > 0 && (
+                    <p className="mt-1">
+                      Skipped {importReport.invalid.length} unusable row
+                      {importReport.invalid.length === 1 ? "" : "s"} (too short or too long):{" "}
+                      {importReport.invalid.slice(0, 5).join(", ")}
+                      {importReport.invalid.length > 5 ? "…" : ""}
+                    </p>
+                  )}
+                  {importReport.overflow.length > 0 && (
+                    <p className="mt-1">
+                      {importReport.overflow.length} left out — the dashboard holds ten keywords at a
+                      time.
+                    </p>
+                  )}
+                </div>
+              )}
+
             </div>
             <div>
               <label className={label} htmlFor="market">
