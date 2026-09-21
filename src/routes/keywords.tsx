@@ -1,8 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, Loader2, Minus, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Download,
+  Loader2,
+  Minus,
+  Search,
+  X,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { keywordDashboard, researchKeyword } from "@/lib/semrush.functions";
 
