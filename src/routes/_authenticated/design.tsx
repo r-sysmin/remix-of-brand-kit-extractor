@@ -9,7 +9,7 @@ import {
   type DesignVersionListItem,
 } from "@/lib/design-doc.functions";
 
-export const Route = createFileRoute("/design")({
+export const Route = createFileRoute("/_authenticated/design")({
   head: () => ({
     meta: [
       { title: "Design system — Brand DNA" },

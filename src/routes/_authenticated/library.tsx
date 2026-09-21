@@ -16,7 +16,7 @@ import {
 } from "@/lib/kits.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/library")({
+export const Route = createFileRoute("/_authenticated/library")({
   head: () => ({
     meta: [
       { title: "Library — Brand DNA" },
@@ -332,7 +332,6 @@ function LibraryPage() {
                       </span>
                     </button>
                   )}
-
                   {/* Logo / mark thumbnail */}
                   <Link
                     to="/kit/$kitId"
@@ -369,7 +368,6 @@ function LibraryPage() {
                       </span>
                     )}
                   </Link>
-
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-3">
                       {isEditing ? (
@@ -455,7 +453,6 @@ function LibraryPage() {
                       )}
                     </div>
                   </div>
-
                   {!selectMode && (
                     <div
                       className={`${mono} flex shrink-0 items-center gap-4 opacity-0 transition-opacity group-hover:opacity-100`}
@@ -487,11 +484,11 @@ function LibraryPage() {
                     </div>
                   )}
                 </li>
-              );
+              )
             })}
           </ul>
         )}
       </main>
     </div>
-  );
+  )
 }

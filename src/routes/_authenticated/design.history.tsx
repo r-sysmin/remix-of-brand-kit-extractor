@@ -7,7 +7,7 @@ import {
   type DesignVersionListItem,
 } from "@/lib/design-doc.functions";
 
-export const Route = createFileRoute("/design/history")({
+export const Route = createFileRoute("/_authenticated/design/history")({
   head: () => ({
     meta: [
       { title: "Design history — Brand DNA" },

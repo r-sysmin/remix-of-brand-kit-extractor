@@ -15,7 +15,7 @@ const searchSchema = z.object({
   b: z.string().uuid(),
 });
 
-export const Route = createFileRoute("/design/history/diff")({
+export const Route = createFileRoute("/_authenticated/design/history/diff")({
   validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [

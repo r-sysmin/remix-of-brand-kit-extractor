@@ -46,7 +46,7 @@ import { smoothScrollTo } from "@/components/smooth-scroll";
 
 const PENDING_EXTRACTION_PREFIX = "branddna.pendingExtraction:";
 
-export const Route = createFileRoute("/kit/$kitId")({
+export const Route = createFileRoute("/_authenticated/kit/$kitId")({
   head: ({ params }) => ({
     meta: [
       { title: "Brand kit — Brand DNA" },
@@ -924,7 +924,7 @@ function ColorCard({
         </button>
       )}
     </div>
-  );
+  )
 }
 
 function ColorsSection({
