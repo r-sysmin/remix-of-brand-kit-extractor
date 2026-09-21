@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Swords } from "lucide-react";
+import { BookOpen, LineChart, Swords } from "lucide-react";
 import { StartHereButton } from "@/components/start-here-button";
 
 
@@ -26,10 +26,15 @@ export function SiteHeader() {
           <StartHereButton />
         </div>
         <nav className="flex shrink-0 items-center gap-4 sm:gap-8">
+          <Link to="/keywords" className={navLinkClass}>
+            <LineChart className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            Keywords
+          </Link>
           <Link to="/competitors" className={navLinkClass}>
             <Swords className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
             Competitors
           </Link>
+
           <Link to="/library" className={navLinkClass}>
             <BookOpen className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
             Library

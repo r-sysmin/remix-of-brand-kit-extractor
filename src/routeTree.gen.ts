@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StartHereRouteImport } from './routes/start-here'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LibraryRouteImport } from './routes/library'
+import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as DesignRouteImport } from './routes/design'
 import { Route as CompetitorsRouteImport } from './routes/competitors'
 import { Route as IndexRouteImport } from './routes/index'
@@ -34,6 +35,11 @@ const McpRoute = McpRouteImport.update({
 const LibraryRoute = LibraryRouteImport.update({
   id: '/library',
   path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KeywordsRoute = KeywordsRouteImport.update({
+  id: '/keywords',
+  path: '/keywords',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DesignRoute = DesignRouteImport.update({
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/competitors': typeof CompetitorsRoute
   '/design': typeof DesignRouteWithChildren
+  '/keywords': typeof KeywordsRoute
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
   '/start-here': typeof StartHereRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/competitors': typeof CompetitorsRoute
   '/design': typeof DesignRouteWithChildren
+  '/keywords': typeof KeywordsRoute
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
   '/start-here': typeof StartHereRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/competitors': typeof CompetitorsRoute
   '/design': typeof DesignRouteWithChildren
+  '/keywords': typeof KeywordsRoute
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
   '/start-here': typeof StartHereRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/'
     | '/competitors'
     | '/design'
+    | '/keywords'
     | '/library'
     | '/mcp'
     | '/start-here'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/'
     | '/competitors'
     | '/design'
+    | '/keywords'
     | '/library'
     | '/mcp'
     | '/start-here'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/'
     | '/competitors'
     | '/design'
+    | '/keywords'
     | '/library'
     | '/mcp'
     | '/start-here'
@@ -164,6 +176,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CompetitorsRoute: typeof CompetitorsRoute
   DesignRoute: typeof DesignRouteWithChildren
+  KeywordsRoute: typeof KeywordsRoute
   LibraryRoute: typeof LibraryRoute
   McpRoute: typeof McpRoute
   StartHereRoute: typeof StartHereRoute
@@ -193,6 +206,13 @@ declare module '@tanstack/react-router' {
       path: '/library'
       fullPath: '/library'
       preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/keywords': {
+      id: '/keywords'
+      path: '/keywords'
+      fullPath: '/keywords'
+      preLoaderRoute: typeof KeywordsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/design': {
@@ -281,6 +301,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompetitorsRoute: CompetitorsRoute,
   DesignRoute: DesignRouteWithChildren,
+  KeywordsRoute: KeywordsRoute,
   LibraryRoute: LibraryRoute,
   McpRoute: McpRoute,
   StartHereRoute: StartHereRoute,

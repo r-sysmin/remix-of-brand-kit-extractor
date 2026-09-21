@@ -124,6 +124,130 @@ export const KeywordResearchInputSchema = z.object({
   database: z.string().trim().min(2).max(6).default("us"),
 });
 
+export const KeywordDashboardInputSchema = z.object({
+  keywords: z.array(z.string().trim().min(2).max(120)).min(1).max(10),
+  database: z.string().trim().min(2).max(6).default("us"),
+});
+
+// Semrush intent codes.
+const INTENT_LABELS: Record<string, string> = {
+  "0": "Commercial",
+  "1": "Informational",
+  "2": "Navigational",
+  "3": "Transactional",
+};
+
+function parseIntents(raw: string | undefined) {
+  return String(raw ?? "")
+    .split(",")
+    .map((v) => INTENT_LABELS[v.trim()])
+    .filter((v): v is string => !!v);
+}
+
+// "Td" is a comma-separated list of 12 relative monthly values (0-1),
+// oldest first. Returns [] when the column is absent.
+function parseTrend(raw: string | undefined) {
+  const parts = String(raw ?? "")
+    .split(",")
+    .map((v) => Number(v.trim()))
+    .filter((v) => Number.isFinite(v));
+  return parts.length >= 2 ? parts : [];
+}
+
+function trendDirection(trend: number[]) {
+  if (trend.length < 4) return { direction: "unknown" as const, change: 0 };
+  const half = Math.floor(trend.length / 2);
+  const older = trend.slice(0, half);
+  const recent = trend.slice(half);
+  const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / (xs.length || 1);
+  const a = avg(older);
+  const b = avg(recent);
+  if (a === 0) return { direction: b > 0 ? ("rising" as const) : ("flat" as const), change: 0 };
+  const change = ((b - a) / a) * 100;
+  const direction =
+    change > 10 ? ("rising" as const) : change < -10 ? ("falling" as const) : ("flat" as const);
+  return { direction, change };
+}
+
+export type KeywordMetrics = {
+  phrase: string;
+  volume: number;
+  cpc: number;
+  competition: number;
+  difficulty: number;
+  results: number;
+  intents: string[];
+  trend: number[];
+  trendDirection: "rising" | "falling" | "flat" | "unknown";
+  trendChange: number;
+  found: boolean;
+};
+
+function toMetrics(r: Row, fallbackPhrase = ""): KeywordMetrics {
+  const trend = parseTrend(r["Trends"] ?? r["Td"]);
+  const { direction, change } = trendDirection(trend);
+  return {
+    phrase: r["Keyword"] ?? r["Ph"] ?? fallbackPhrase,
+    volume: num(r["Search Volume"] ?? r["Nq"]),
+    cpc: num(r["CPC"] ?? r["Cp"]),
+    competition: num(r["Competition"] ?? r["Co"]),
+    difficulty: num(r["Keyword Difficulty Index"] ?? r["Keyword Difficulty"] ?? r["Kd"]),
+    results: num(r["Number of Results"] ?? r["Nr"]),
+    intents: parseIntents(r["Intent"] ?? r["In"]),
+    trend,
+    trendDirection: direction,
+    trendChange: change,
+    found: true,
+  };
+}
+
+const KEYWORD_COLUMNS = "Ph,Nq,Cp,Co,Kd,Nr,In,Td";
+
+export async function keywordDashboardImpl(input: z.infer<typeof KeywordDashboardInputSchema>) {
+  const keywords = [...new Set(input.keywords.map((k) => k.toLowerCase()))];
+  const rows = await call("keywords", "phrase_these", {
+    phrase: keywords.join(";"),
+    database: input.database,
+    export_columns: KEYWORD_COLUMNS,
+  });
+
+  const byPhrase = new Map(rows.map((r) => [(r["Keyword"] ?? r["Ph"] ?? "").toLowerCase(), r]));
+  const metrics: KeywordMetrics[] = keywords.map((k) => {
+    const row = byPhrase.get(k);
+    if (row) return toMetrics(row, k);
+    return {
+      phrase: k,
+      volume: 0,
+      cpc: 0,
+      competition: 0,
+      difficulty: 0,
+      results: 0,
+      intents: [],
+      trend: [],
+      trendDirection: "unknown",
+      trendChange: 0,
+      found: false,
+    };
+  });
+
+  const found = metrics.filter((m) => m.found);
+  return {
+    database: input.database,
+    metrics,
+    totals: {
+      keywords: metrics.length,
+      withData: found.length,
+      totalVolume: found.reduce((a, m) => a + m.volume, 0),
+      avgDifficulty: found.length
+        ? found.reduce((a, m) => a + m.difficulty, 0) / found.length
+        : 0,
+      avgCpc: found.length ? found.reduce((a, m) => a + m.cpc, 0) / found.length : 0,
+      rising: found.filter((m) => m.trendDirection === "rising").length,
+    },
+  };
+}
+
+
 export type DomainSnapshot = {
   domain: string;
   organicKeywords: number;
@@ -260,19 +384,19 @@ export async function keywordResearchImpl(input: z.infer<typeof KeywordResearchI
     call("keywords", "phrase_this", {
       phrase: keyword,
       database,
-      export_columns: "Ph,Nq,Cp,Co,Kd,Nr",
+      export_columns: KEYWORD_COLUMNS,
     }),
     call("keywords", "phrase_related", {
       phrase: keyword,
       database,
-      export_columns: "Ph,Nq,Cp,Kd",
+      export_columns: "Ph,Nq,Cp,Kd,In,Td",
       display_limit: 20,
       display_sort: "nq_desc",
     }),
     call("keywords", "phrase_questions", {
       phrase: keyword,
       database,
-      export_columns: "Ph,Nq,Cp,Kd",
+      export_columns: "Ph,Nq,Cp,Kd,In,Td",
       display_limit: 20,
       display_sort: "nq_desc",
     }),
@@ -280,25 +404,27 @@ export async function keywordResearchImpl(input: z.infer<typeof KeywordResearchI
 
   const o = overviewRows[0] ?? {};
   const mapList = (rows: Row[]) =>
-    rows.map((r) => ({
-      phrase: r["Keyword"] ?? r["Ph"] ?? "",
-      volume: num(r["Search Volume"] ?? r["Nq"]),
-      cpc: num(r["CPC"] ?? r["Cp"]),
-      difficulty: num(r["Keyword Difficulty Index"] ?? r["Keyword Difficulty"] ?? r["Kd"]),
-    }));
+    rows.map((r) => {
+      const m = toMetrics(r);
+      return {
+        phrase: m.phrase,
+        volume: m.volume,
+        cpc: m.cpc,
+        difficulty: m.difficulty,
+        intents: m.intents,
+        trend: m.trend,
+        trendDirection: m.trendDirection,
+        trendChange: m.trendChange,
+      };
+    });
 
+  const overview = toMetrics(o, keyword);
   return {
     database,
     keyword,
-    overview: {
-      volume: num(o["Search Volume"] ?? o["Nq"]),
-      cpc: num(o["CPC"] ?? o["Cp"]),
-      competition: num(o["Competition"] ?? o["Co"]),
-      difficulty: num(o["Keyword Difficulty Index"] ?? o["Keyword Difficulty"] ?? o["Kd"]),
-      results: num(o["Number of Results"] ?? o["Nr"]),
-      found: overviewRows.length > 0,
-    },
+    overview: { ...overview, found: overviewRows.length > 0 },
     related: mapList(related),
     questions: mapList(questions),
   };
 }
+
