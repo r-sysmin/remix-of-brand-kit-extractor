@@ -384,19 +384,19 @@ export async function keywordResearchImpl(input: z.infer<typeof KeywordResearchI
     call("keywords", "phrase_this", {
       phrase: keyword,
       database,
-      export_columns: "Ph,Nq,Cp,Co,Kd,Nr",
+      export_columns: KEYWORD_COLUMNS,
     }),
     call("keywords", "phrase_related", {
       phrase: keyword,
       database,
-      export_columns: "Ph,Nq,Cp,Kd",
+      export_columns: "Ph,Nq,Cp,Kd,In,Td",
       display_limit: 20,
       display_sort: "nq_desc",
     }),
     call("keywords", "phrase_questions", {
       phrase: keyword,
       database,
-      export_columns: "Ph,Nq,Cp,Kd",
+      export_columns: "Ph,Nq,Cp,Kd,In,Td",
       display_limit: 20,
       display_sort: "nq_desc",
     }),
@@ -404,25 +404,27 @@ export async function keywordResearchImpl(input: z.infer<typeof KeywordResearchI
 
   const o = overviewRows[0] ?? {};
   const mapList = (rows: Row[]) =>
-    rows.map((r) => ({
-      phrase: r["Keyword"] ?? r["Ph"] ?? "",
-      volume: num(r["Search Volume"] ?? r["Nq"]),
-      cpc: num(r["CPC"] ?? r["Cp"]),
-      difficulty: num(r["Keyword Difficulty Index"] ?? r["Keyword Difficulty"] ?? r["Kd"]),
-    }));
+    rows.map((r) => {
+      const m = toMetrics(r);
+      return {
+        phrase: m.phrase,
+        volume: m.volume,
+        cpc: m.cpc,
+        difficulty: m.difficulty,
+        intents: m.intents,
+        trend: m.trend,
+        trendDirection: m.trendDirection,
+        trendChange: m.trendChange,
+      };
+    });
 
+  const overview = toMetrics(o, keyword);
   return {
     database,
     keyword,
-    overview: {
-      volume: num(o["Search Volume"] ?? o["Nq"]),
-      cpc: num(o["CPC"] ?? o["Cp"]),
-      competition: num(o["Competition"] ?? o["Co"]),
-      difficulty: num(o["Keyword Difficulty Index"] ?? o["Keyword Difficulty"] ?? o["Kd"]),
-      results: num(o["Number of Results"] ?? o["Nr"]),
-      found: overviewRows.length > 0,
-    },
+    overview: { ...overview, found: overviewRows.length > 0 },
     related: mapList(related),
     questions: mapList(questions),
   };
 }
+

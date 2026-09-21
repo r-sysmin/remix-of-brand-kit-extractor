@@ -1,11 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import {
   CompetitorCompareInputSchema,
+  KeywordDashboardInputSchema,
   KeywordResearchInputSchema,
   SemrushError,
   compareCompetitorsImpl,
+  keywordDashboardImpl,
   keywordResearchImpl,
 } from "@/server/semrush.server";
+
 
 function fail(e: unknown) {
   if (e instanceof SemrushError) return { ok: false as const, error: e.message };
