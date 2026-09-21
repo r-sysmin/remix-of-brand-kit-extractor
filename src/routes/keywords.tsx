@@ -273,9 +273,12 @@ function KeywordsPage() {
                 className={`${field} mt-2 resize-y`}
                 value={raw}
                 onChange={(e) => setRaw(e.target.value)}
+                placeholder={"brand style guide | guides"}
               />
               <p className="mt-2 font-sans text-[12px] text-muted-foreground">
-                {keywords.length} phrase{keywords.length === 1 ? "" : "s"} ready
+                {keywords.length} phrase{keywords.length === 1 ? "" : "s"} ready — add{" "}
+                <span className="font-mono">| group</span> to tag a keyword with a group you can
+                filter by
               </p>
             </div>
             <div>
