@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 
-export const Route = createFileRoute("/start-here")({
+export const Route = createFileRoute("/_authenticated/start-here")({
   head: () => ({
     meta: [
       { title: "Start Here — Brand Kit" },

@@ -1,17 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
+import { assertKitOwner } from "@/server/kit-auth.server";
 
-async function assertOwner(kitId: string, _ownerToken: string) {
-  // Shared workspace — confirm kit exists; do not gate on ownership.
-  const admin = getAdmin();
-  const { data: kit, error } = await admin
-    .from("brand_kits")
-    .select("id")
-    .eq("id", kitId)
-    .maybeSingle();
-  if (error || !kit) throw new Error("Kit not found");
-  return admin;
+async function ownedAdmin(kitId: string, userId: string) {
+  await assertKitOwner(kitId, userId);
+  return getAdmin();
 }
 
 const HEX = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
@@ -19,13 +14,14 @@ const HEX = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const DeleteAssetSchema = z.object({
   kitId: z.string().uuid(),
   assetId: z.string().uuid(),
-  ownerToken: z.string().min(1).max(200),
+  ownerToken: z.string().min(1).max(200).optional(),
 });
 
 export const deleteKitAsset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => DeleteAssetSchema.parse(d))
-  .handler(async ({ data }) => {
-    const admin = await assertOwner(data.kitId, data.ownerToken);
+  .handler(async ({ data, context }) => {
+    const admin = await ownedAdmin(data.kitId, context.userId);
     const { data: asset } = await admin
       .from("kit_assets")
       .select("storage_path")
@@ -47,13 +43,14 @@ export const deleteKitAsset = createServerFn({ method: "POST" })
 const DeleteColorSchema = z.object({
   kitId: z.string().uuid(),
   colorId: z.string().uuid(),
-  ownerToken: z.string().min(1).max(200),
+  ownerToken: z.string().min(1).max(200).optional(),
 });
 
 export const deleteKitColor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => DeleteColorSchema.parse(d))
-  .handler(async ({ data }) => {
-    const admin = await assertOwner(data.kitId, data.ownerToken);
+  .handler(async ({ data, context }) => {
+    const admin = await ownedAdmin(data.kitId, context.userId);
     const { error } = await admin
       .from("kit_colors")
       .delete()
@@ -66,16 +63,17 @@ export const deleteKitColor = createServerFn({ method: "POST" })
 const UpdateColorSchema = z.object({
   kitId: z.string().uuid(),
   colorId: z.string().uuid(),
-  ownerToken: z.string().min(1).max(200),
+  ownerToken: z.string().min(1).max(200).optional(),
   hex: z.string().regex(HEX).optional(),
   role: z.string().min(1).max(40).optional(),
   name: z.string().min(1).max(80).nullable().optional(),
 });
 
 export const updateKitColor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => UpdateColorSchema.parse(d))
-  .handler(async ({ data }) => {
-    const admin = await assertOwner(data.kitId, data.ownerToken);
+  .handler(async ({ data, context }) => {
+    const admin = await ownedAdmin(data.kitId, context.userId);
     const patch: Record<string, any> = {};
     if (data.hex) patch.hex = data.hex.toUpperCase();
     if (data.role) patch.role = data.role;

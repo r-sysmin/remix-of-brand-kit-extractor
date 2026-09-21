@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
+import { assertKitOwner } from "@/server/kit-auth.server";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
 const MAX_FILES = 10;
@@ -47,6 +49,7 @@ export type UploadResult = {
 
 // Server fn that accepts FormData with: kitId, ownerToken, file (repeatable)
 export const uploadBrandSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => {
     if (!(data instanceof FormData)) throw new Error("Expected FormData");
     const kitId = String(data.get("kitId") ?? "");
@@ -61,17 +64,12 @@ export const uploadBrandSource = createServerFn({ method: "POST" })
     }
     return { kitId, ownerToken, files };
   })
-  .handler(async ({ data }): Promise<UploadResult> => {
+  .handler(async ({ data, context }): Promise<UploadResult> => {
     const admin = getAdmin();
 
-    // Shared workspace — confirm kit exists; do not gate on ownership.
-    void data.ownerToken;
-    const { data: kit, error: kitErr } = await admin
-      .from("brand_kits")
-      .select("id")
-      .eq("id", data.kitId)
-      .maybeSingle();
-    if (kitErr || !kit) throw new Error("Kit not found");
+    // Owner-only: ownership comes from the verified session, not the request.
+    await assertKitOwner(data.kitId, context.userId);
+
 
     const imageUrls: string[] = [];
     const pdfTexts: string[] = [];

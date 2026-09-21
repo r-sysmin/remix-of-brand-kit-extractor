@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
+import { assertKitOwner } from "@/server/kit-auth.server";
 import { decode as decodePng, encode as encodePng } from "fast-png";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -212,17 +214,14 @@ async function editImage(prompt: string, imageUrl: string): Promise<{ buf: Uint8
 }
 
 export const generateLogoVariants = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => InputSchema.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const admin = getAdmin();
 
-    // Shared workspace: any visitor can act on any kit. Just confirm the kit exists.
-    const { data: kit, error: kitErr } = await admin
-      .from("brand_kits")
-      .select("id")
-      .eq("id", data.kitId)
-      .maybeSingle();
-    if (kitErr || !kit) throw new Error("Kit not found");
+    // Owner-only: this spends AI credits, so gate on the verified session.
+    await assertKitOwner(data.kitId, context.userId);
+
 
     // Source asset (with fallbacks across other logo-ish assets in the kit)
     const { data: source } = await admin

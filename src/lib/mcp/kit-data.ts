@@ -14,9 +14,17 @@ async function admin() {
   return getAdmin();
 }
 
-export async function loadKitBundle(kitId: string): Promise<KitBundle> {
+// Owner-scoped load: the caller must be the signed-in owner of the kit. Both
+// "missing" and "not yours" return the same message so kit ids can't be probed.
+export async function loadKitBundle(kitId: string, userId: string): Promise<KitBundle> {
+  if (!userId) throw new Error("No brand kit found with that ID.");
   const db = await admin();
-  const { data: kit } = await db.from("brand_kits").select("*").eq("id", kitId).maybeSingle();
+  const { data: kit } = await db
+    .from("brand_kits")
+    .select("*")
+    .eq("id", kitId)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (!kit) throw new Error("No brand kit found with that ID.");
   const [colors, fonts, tokens, assets, voice] = await Promise.all([
     db.from("kit_colors").select("*").eq("kit_id", kitId).order("position"),
@@ -35,7 +43,8 @@ export async function loadKitBundle(kitId: string): Promise<KitBundle> {
   };
 }
 
-export async function createKitRow(args: { sourceUrl?: string; name?: string }) {
+export async function createKitRow(args: { sourceUrl?: string; name?: string; userId: string }) {
+  if (!args.userId) throw new Error("Sign-in is required to create a brand kit.");
   const db = await admin();
   const { data, error } = await db
     .from("brand_kits")
@@ -44,7 +53,8 @@ export async function createKitRow(args: { sourceUrl?: string; name?: string }) 
       source_type: args.sourceUrl ? "url" : "manual",
       source_url: args.sourceUrl ?? null,
       status: "pending",
-      anon_token: `mcp:${crypto.randomUUID()}`,
+      user_id: args.userId,
+      anon_token: null,
     })
     .select("id")
     .single();

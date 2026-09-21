@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSharedKit } from "@/lib/shared-kit.functions";
-import { TokensSection, VoiceSection } from "@/routes/kit.$kitId";
+import { TokensSection, VoiceSection } from "@/routes/_authenticated/kit.$kitId";
 
 export const Route = createFileRoute("/share/$shareToken")({
   head: ({ params }) => ({
