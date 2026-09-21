@@ -318,7 +318,7 @@ function KitPage() {
                   colors={data.colors}
                   kitId={kit.id}
                   ownerToken={ownerToken}
-                  isOwner={kit.user_id === (user?.id ?? "") || kit.anon_token === ownerToken}
+                  isOwner={!!(kit as any).isOwner}
                   onChanged={() => setReloadKey((k) => k + 1)}
                 />
               </SectionAnchor>
@@ -341,7 +341,7 @@ function KitPage() {
                 <ExportSection
                   kitId={kit.id}
                   kitName={kit.name}
-                  isOwner={kit.user_id === (user?.id ?? "") || kit.anon_token === ownerToken}
+                  isOwner={!!(kit as any).isOwner}
                   isPublic={!!kit.is_public}
                   shareToken={kit.share_token ?? null}
                   onShareChange={(next) =>
