@@ -309,6 +309,37 @@ function csvCell(value: string | number) {
 
 const TREND_RANK: Record<string, number> = { rising: 3, flat: 2, falling: 1, unknown: 0 };
 
+type HistoryPoint = { month: string; label: string; volume: number; relative: number };
+
+function HistoryChart({ points }: { points: HistoryPoint[] }) {
+  if (points.length < 2) {
+    return (
+      <p className="font-sans text-[13px] italic text-muted-foreground">
+        Semrush did not return month-by-month history for this phrase.
+      </p>
+    );
+  }
+  const max = Math.max(...points.map((p) => p.volume)) || 1;
+  return (
+    <div className="flex items-end gap-1.5" role="img" aria-label="Estimated monthly searches over the last year">
+      {points.map((p) => (
+        <div key={p.month} className="flex flex-1 flex-col items-center gap-1">
+          <span className="font-mono text-[9px] text-muted-foreground">{fmt(p.volume)}</span>
+          <span
+            className="w-full rounded-t bg-foreground"
+            style={{ height: `${Math.max(3, (p.volume / max) * 96)}px` }}
+            title={`${p.label}: ${fmt(p.volume)} searches`}
+          />
+          <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">
+            {p.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
 function KeywordsPage() {
   const dashboardFn = useServerFn(keywordDashboard);
   const researchFn = useServerFn(researchKeyword);
