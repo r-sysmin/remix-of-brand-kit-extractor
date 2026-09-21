@@ -946,7 +946,62 @@ function KeywordsPage() {
                 <Note>No detail available for this phrase in {marketName}.</Note>
               </div>
             ) : (
-              <div className="mt-6 grid gap-8 md:grid-cols-2">
+              <>
+                <div className="mt-5 grid gap-3 sm:grid-cols-4">
+                  {[
+                    ["Searches / mo", fmt(deep.overview.volume)],
+                    [
+                      "Difficulty",
+                      deep.overview.difficulty ? `${Math.round(deep.overview.difficulty)}/100` : "Unknown",
+                    ],
+                    ["Cost per click", money(deep.overview.cpc)],
+                    [
+                      "12-month change",
+                      deep.overview.trendDirection === "unknown"
+                        ? "Unknown"
+                        : deep.overview.trendDirection === "flat"
+                          ? "Steady"
+                          : `${deep.overview.trendChange > 0 ? "+" : ""}${Math.round(deep.overview.trendChange)}%`,
+                    ],
+                  ].map(([k, v]) => (
+                    <div key={k} className="rounded-lg border border-border-subtle p-4">
+                      <p className={label}>{k}</p>
+                      <p className="mt-2 font-display text-2xl">{v}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-5 flex flex-wrap items-center gap-4">
+                  <span className="flex items-center gap-2">
+                    <span className={label}>Intent</span>
+                    <Intents intents={deep.overview.intents} />
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className={label}>Trend</span>
+                    <TrendBadge
+                      direction={deep.overview.trendDirection as Trend}
+                      change={deep.overview.trendChange}
+                    />
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className={label}>Difficulty</span>
+                    <Difficulty value={deep.overview.difficulty} />
+                  </span>
+                </div>
+
+                <div className="mt-7">
+                  <h3 className="font-display text-xl">Searches month by month</h3>
+                  <p className="mt-1 font-sans text-[12px] italic text-muted-foreground">
+                    Estimated from Semrush's relative 12-month demand curve scaled to the reported
+                    monthly volume.
+                  </p>
+                  <div className="mt-4">
+                    <HistoryChart points={deep.overview.history as HistoryPoint[]} />
+                  </div>
+                </div>
+
+              <div className="mt-8 grid gap-8 md:grid-cols-2">
+
                 {[
                   ["Related phrases", deep.related],
                   ["Questions people ask", deep.questions],
