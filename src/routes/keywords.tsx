@@ -210,6 +210,98 @@ function parseKeywordLine(line: string): { phrase: string; group: string } | nul
   return { phrase, group: group || "" };
 }
 
+const MAX_KEYWORDS = 10;
+
+// Minimal RFC4180-ish CSV parser (handles quoted cells and embedded commas).
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  const src = text.replace(/\r\n?/g, "\n");
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (quoted) {
+      if (c === '"') {
+        if (src[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else quoted = false;
+      } else cell += c;
+      continue;
+    }
+    if (c === '"') quoted = true;
+    else if (c === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (c === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else cell += c;
+  }
+  row.push(cell);
+  rows.push(row);
+  return rows.filter((r) => r.some((v) => v.trim() !== ""));
+}
+
+type ImportReport = {
+  added: { phrase: string; group: string }[];
+  duplicates: string[];
+  invalid: string[];
+  overflow: string[];
+};
+
+// Validates a CSV of keywords, parses groups, and drops duplicates.
+function importKeywordsFromCsv(text: string, existing: { phrase: string; group: string }[]) {
+  const rows = parseCsv(text);
+  const report: ImportReport = { added: [], duplicates: [], invalid: [], overflow: [] };
+  if (rows.length === 0) return report;
+
+  const head = rows[0]!.map((h) => h.trim().toLowerCase());
+  const keywordCol = head.findIndex((h) => h === "keyword" || h === "keywords" || h === "phrase");
+  const groupCol = head.findIndex((h) => h === "group" || h === "category" || h === "cluster");
+  const hasHeader = keywordCol !== -1;
+  const kIdx = hasHeader ? keywordCol : 0;
+  const gIdx = hasHeader ? groupCol : 1;
+
+  const seen = new Map(existing.map((e) => [e.phrase.toLowerCase(), e]));
+  const total = () => seen.size;
+
+  for (const r of rows.slice(hasHeader ? 1 : 0)) {
+    const rawCell = (r[kIdx] ?? "").trim();
+    if (!rawCell) continue;
+    // A single cell may still carry the "phrase | group" shorthand.
+    const [phrasePart, inlineGroup] = rawCell.split("|").map((s) => s.trim());
+    const phrase = (phrasePart ?? "").replace(/\s+/g, " ");
+    const group = ((gIdx >= 0 ? r[gIdx] : "") ?? "").trim() || inlineGroup || "";
+
+    if (phrase.length < 2 || phrase.length > 120) {
+      report.invalid.push(rawCell);
+      continue;
+    }
+    const key = phrase.toLowerCase();
+    if (seen.has(key)) {
+      report.duplicates.push(phrase);
+      continue;
+    }
+    if (total() >= MAX_KEYWORDS) {
+      report.overflow.push(phrase);
+      continue;
+    }
+    const entry = { phrase, group };
+    seen.set(key, entry);
+    report.added.push(entry);
+  }
+  return report;
+}
+
+function toLines(entries: { phrase: string; group: string }[]) {
+  return entries.map((e) => (e.group ? `${e.phrase} | ${e.group}` : e.phrase)).join("\n");
+}
+
+
 function csvCell(value: string | number) {
   const s = String(value ?? "");
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
