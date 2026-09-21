@@ -13,6 +13,14 @@ export const Route = createFileRoute("/")({
         content:
           "Paste a URL or drop assets. Get the palette, type, voice, and tokens — ready for your next pitch deck or build.",
       },
+      { property: "og:title", content: "Brand DNA — extract any brand's design system" },
+      {
+        property: "og:description",
+        content:
+          "Paste a URL or drop assets. Get the palette, type, voice, and tokens — ready for your next pitch deck or build.",
+      },
+      { property: "og:url", content: "/" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
