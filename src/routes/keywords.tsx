@@ -219,11 +219,31 @@ function KeywordsPage() {
 
   const rows = useMemo(() => {
     if (!result) return [];
-    return [...result.metrics].sort((a, b) => {
+    const minV = filters.minVolume === "" ? null : Number(filters.minVolume);
+    const maxV = filters.maxVolume === "" ? null : Number(filters.maxVolume);
+    const minD = filters.minDifficulty === "" ? null : Number(filters.minDifficulty);
+    const maxD = filters.maxDifficulty === "" ? null : Number(filters.maxDifficulty);
+    const filtered = result.metrics.filter((m) => {
+      if (!m.found) return true;
+      if (minV !== null && m.volume < minV) return false;
+      if (maxV !== null && m.volume > maxV) return false;
+      if (minD !== null && m.difficulty < minD) return false;
+      if (maxD !== null && m.difficulty > maxD) return false;
+      if (filters.intent !== "any" && !m.intents.includes(filters.intent)) return false;
+      if (filters.trend !== "any" && m.trendDirection !== filters.trend) return false;
+      if (filters.group !== "any" && (groupByPhrase.get(m.phrase) ?? "") !== filters.group)
+        return false;
+      return true;
+    });
+    return filtered.sort((a, b) => {
       if (a.found !== b.found) return a.found ? -1 : 1;
       return (b[sortKey] as number) - (a[sortKey] as number);
     });
-  }, [result, sortKey]);
+  }, [result, sortKey, filters, groupByPhrase]);
+
+  const filtersActive =
+    JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
+  const hiddenCount = result ? result.metrics.length - rows.length : 0;
 
   return (
     <div className="min-h-screen bg-background">
