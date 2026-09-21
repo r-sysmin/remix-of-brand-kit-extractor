@@ -632,6 +632,32 @@ function KeywordsPage() {
                 </span>
               </div>
 
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  className="inline-flex items-center gap-2 rounded-full border border-border-subtle px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:border-foreground disabled:opacity-40"
+                  onClick={() => runAutoGroup(false)}
+                  disabled={keywords.length === 0}
+                >
+                  <Layers className="h-3.5 w-3.5" aria-hidden />
+                  Auto-group
+                </button>
+                <button
+                  className="font-mono text-[11px] uppercase tracking-[0.1em] underline decoration-border-subtle underline-offset-4 hover:decoration-foreground disabled:opacity-40"
+                  onClick={() => runAutoGroup(true)}
+                  disabled={keywords.length === 0}
+                >
+                  Regroup all
+                </button>
+                <span className="font-sans text-[12px] italic text-muted-foreground">
+                  Clusters phrases by shared topic words and searcher intent
+                </span>
+              </div>
+
+              {clusterNote && (
+                <p className="mt-2 font-sans text-[12px] text-foreground">{clusterNote}</p>
+              )}
+
+
               {importReport && (
                 <div className="mt-3 rounded-md border border-border-subtle bg-surface px-3 py-2 font-sans text-[12px] text-muted-foreground">
                   <p className="text-foreground">
