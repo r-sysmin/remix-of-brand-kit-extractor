@@ -189,28 +189,25 @@ export const duplicateKit = createServerFn({ method: "POST" })
     return { kit: created };
   });
 
-// List all kits owned by the given token (anon or user id).
+// List the signed-in user's own kits.
 export const listKitsByOwner = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      ownerToken: z.string().min(1).max(200),
-      // Optional: include older anon tokens this browser has used so kits
-      // created before a token rotation are still surfaced.
+      // Accepted for backward compatibility with older clients; ignored.
+      ownerToken: z.string().min(1).max(200).optional(),
       ownerTokens: z.array(z.string().min(1).max(200)).max(20).optional(),
       // Optional cap — used by the landing page recent-kits widget to keep
       // the round-trip lean (3 rows + their colors/fonts/logo only).
       limit: z.number().int().min(1).max(200).optional(),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const admin = getAdmin();
-    // Shared workspace: every visitor sees every kit. The ownerToken /
-    // ownerTokens inputs are accepted for backward compatibility but ignored.
-    void data.ownerToken;
-    void data.ownerTokens;
     let query = admin
       .from("brand_kits")
       .select("id, name, source_url, status, created_at")
+      .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
     if (data.limit) query = query.limit(data.limit);
     const { data: kitRows, error } = await query;
