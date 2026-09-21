@@ -278,15 +278,101 @@ function KeywordsPage() {
         return false;
       return true;
     });
-    return filtered.sort((a, b) => {
+    const text = (m: (typeof filtered)[number]) =>
+      sortKey === "phrase"
+        ? m.phrase
+        : sortKey === "group"
+          ? groupByPhrase.get(m.phrase) ?? ""
+          : m.intents.join(", ");
+    const isText = sortKey === "phrase" || sortKey === "group" || sortKey === "intent";
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
       if (a.found !== b.found) return a.found ? -1 : 1;
-      return (b[sortKey] as number) - (a[sortKey] as number);
+      if (isText) return text(a).localeCompare(text(b)) * dir;
+      if (sortKey === "trendChange") {
+        const rank = TREND_RANK[b.trendDirection] - TREND_RANK[a.trendDirection];
+        if (rank !== 0) return rank * dir * -1;
+      }
+      return ((b[sortKey] as number) - (a[sortKey] as number)) * dir * -1 * -1;
     });
-  }, [result, sortKey, filters, groupByPhrase]);
+  }, [result, sortKey, sortDir, filters, groupByPhrase]);
 
   const filtersActive =
     JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
   const hiddenCount = result ? result.metrics.length - rows.length : 0;
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "phrase" || key === "group" || key === "intent" ? "asc" : "desc");
+    }
+  }
+
+  function exportCsv() {
+    const header = [
+      "Keyword",
+      "Group",
+      "Searches per month",
+      "Difficulty",
+      "Intent",
+      "Trend",
+      "Trend change %",
+      "CPC",
+      "Market",
+    ];
+    const lines = rows.map((m) =>
+      [
+        m.phrase,
+        groupByPhrase.get(m.phrase) ?? "",
+        m.found ? m.volume : "",
+        m.found && m.difficulty ? Math.round(m.difficulty) : "",
+        m.intents.join(", "),
+        m.found ? m.trendDirection : "",
+        m.found && m.trendDirection !== "unknown" ? Math.round(m.trendChange) : "",
+        m.found ? m.cpc.toFixed(2) : "",
+        database,
+      ]
+        .map(csvCell)
+        .join(","),
+    );
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `keywords-${database}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function saveCurrentPreset() {
+    const name = presetName.trim();
+    if (!name) return;
+    const next = [
+      ...presets.filter((p) => p.name.toLowerCase() !== name.toLowerCase()),
+      { name, filters, sortKey, sortDir },
+    ];
+    setPresets(next);
+    savePresets(next);
+    setPresetName("");
+  }
+
+  function applyPreset(name: string) {
+    const p = presets.find((x) => x.name === name);
+    if (!p) return;
+    setFilters({ ...EMPTY_FILTERS, ...p.filters });
+    setSortKey(p.sortKey);
+    setSortDir(p.sortDir);
+  }
+
+  function deletePreset(name: string) {
+    const next = presets.filter((p) => p.name !== name);
+    setPresets(next);
+    savePresets(next);
+  }
 
   return (
     <div className="min-h-screen bg-background">
