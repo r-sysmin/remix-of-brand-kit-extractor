@@ -82,7 +82,6 @@ async function directScrape(url: string) {
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
       "Upgrade-Insecure-Requests": "1",
     },
-    redirect: "follow",
     signal: timeout.signal,
   }).finally(timeout.clear);
   if (!res.ok) throw new Error(`Direct scrape failed [${res.status}]`);

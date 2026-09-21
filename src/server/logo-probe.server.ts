@@ -1,6 +1,8 @@
 // Deterministic logo / icon discovery: probe well-known icon paths and parse meta tags.
 // Returns absolute URLs that pass a HEAD check.
 
+import { safeFetch } from "./url-guard.server";
+
 type Probe = { kind: string; url: string };
 
 function abs(href: string, base: string): string | null {
@@ -11,17 +13,16 @@ async function head(url: string, timeoutMs = 4000): Promise<boolean> {
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    const res = await fetch(url, { method: "HEAD", redirect: "follow", signal: ctrl.signal });
+    const res = await safeFetch(url, { method: "HEAD", signal: ctrl.signal });
     clearTimeout(t);
     if (res.ok) return true;
     // Some hosts reject HEAD; try a tiny ranged GET.
     if (res.status === 405 || res.status === 501) {
       const ctrl2 = new AbortController();
       const t2 = setTimeout(() => ctrl2.abort(), timeoutMs);
-      const r2 = await fetch(url, {
+      const r2 = await safeFetch(url, {
         method: "GET",
         headers: { Range: "bytes=0-256" },
-        redirect: "follow",
         signal: ctrl2.signal,
       });
       clearTimeout(t2);
