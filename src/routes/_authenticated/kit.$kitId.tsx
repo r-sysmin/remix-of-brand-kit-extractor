@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { ExtractionProgress } from "@/components/extraction-progress";
 import { QuietLoader } from "@/components/quiet-loader";
 import { smoothScrollTo } from "@/components/smooth-scroll";
+import { BrandBuilderSection } from "@/components/brand-builder";
 
 const PENDING_EXTRACTION_PREFIX = "branddna.pendingExtraction:";
 
@@ -317,6 +318,9 @@ function KitPage() {
                 assets={data.assets}
                 voice={data.voice}
               />
+              <SectionAnchor id="builder" label="Brand builder">
+                <BrandBuilderSection kitId={kit.id} onApplied={() => setReloadKey((k) => k + 1)} />
+              </SectionAnchor>
               <SectionAnchor id="overview" label="Overview">
                 <OverviewSection
                   assets={data.assets}
@@ -389,6 +393,7 @@ function copy(s: string) {
 }
 
 const KIT_SECTIONS = [
+  { id: "builder", label: "Brand builder" },
   { id: "overview", label: "Overview" },
   { id: "assets", label: "Logos & Assets" },
   { id: "colors", label: "Colors" },

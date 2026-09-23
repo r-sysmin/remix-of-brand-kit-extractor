@@ -273,7 +273,7 @@ export const applyBrandDirection = createServerFn({ method: "POST" })
       dos: d.dos,
       donts: d.donts,
       vocabulary: d.localCues,
-      samples: [...d.taglines.map((t) => ({ kind: "tagline", text: t })), { kind: "sample", text: d.sampleCopy }],
+      samples: { headline: d.taglines[0] ?? "", cta: d.taglines[1] ?? "", slide_title: d.name, email_intro: d.sampleCopy },
       updated_at: new Date().toISOString(),
     };
     const { data: v } = await admin.from("kit_voice").select("id").eq("kit_id", data.kitId).maybeSingle();
