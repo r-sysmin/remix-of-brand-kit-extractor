@@ -1,13 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
 import { assertKitOwner } from "@/server/kit-auth.server";
 
 // Toggle public sharing for a kit. Owner-only, where "owner" comes from the
 // verified session — never from request input.
 export const setKitShare = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
@@ -15,9 +13,9 @@ export const setKitShare = createServerFn({ method: "POST" })
       isPublic: z.boolean(),
     }).parse,
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const admin = getAdmin();
-    const k = await assertKitOwner(data.kitId, context.userId);
+    const k = await assertKitOwner(data.kitId, data.ownerToken);
 
     const update: Record<string, any> = { is_public: data.isPublic };
     if (data.isPublic && !k.share_token) {

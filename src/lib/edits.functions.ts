@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
 import { assertKitOwner } from "@/server/kit-auth.server";
 
@@ -18,10 +17,9 @@ const DeleteAssetSchema = z.object({
 });
 
 export const deleteKitAsset = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) => DeleteAssetSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const admin = await ownedAdmin(data.kitId, context.userId);
+  .handler(async ({ data }) => {
+    const admin = await ownedAdmin(data.kitId, data.ownerToken);
     const { data: asset } = await admin
       .from("kit_assets")
       .select("storage_path")
@@ -47,10 +45,9 @@ const DeleteColorSchema = z.object({
 });
 
 export const deleteKitColor = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) => DeleteColorSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const admin = await ownedAdmin(data.kitId, context.userId);
+  .handler(async ({ data }) => {
+    const admin = await ownedAdmin(data.kitId, data.ownerToken);
     const { error } = await admin
       .from("kit_colors")
       .delete()
@@ -70,10 +67,9 @@ const UpdateColorSchema = z.object({
 });
 
 export const updateKitColor = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) => UpdateColorSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const admin = await ownedAdmin(data.kitId, context.userId);
+  .handler(async ({ data }) => {
+    const admin = await ownedAdmin(data.kitId, data.ownerToken);
     const patch: Record<string, any> = {};
     if (data.hex) patch.hex = data.hex.toUpperCase();
     if (data.role) patch.role = data.role;

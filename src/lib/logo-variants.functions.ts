@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
 import { assertKitOwner } from "@/server/kit-auth.server";
 import { decode as decodePng, encode as encodePng } from "fast-png";
@@ -213,13 +212,12 @@ async function editImage(prompt: string, imageUrl: string): Promise<{ buf: Uint8
 }
 
 export const generateLogoVariants = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) => InputSchema.parse(d))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const admin = getAdmin();
 
     // Owner-only: this spends AI credits, so gate on the verified session.
-    await assertKitOwner(data.kitId, context.userId);
+    await assertKitOwner(data.kitId, data.ownerToken);
 
 
     // Source asset (with fallbacks across other logo-ish assets in the kit)
