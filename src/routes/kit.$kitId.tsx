@@ -358,7 +358,7 @@ function KitPage() {
                 <TokensSection tokens={data.tokens} />
               </SectionAnchor>
               <SectionAnchor id="voice" label="Voice">
-                <VoiceSection voice={data.voice} kitId={kit.id} />
+                <VoiceSection voice={data.voice} kitId={kit.id} ownerToken={ownerToken} />
               </SectionAnchor>
               <SectionAnchor id="export" label="Export">
                 <ExportSection
@@ -1793,7 +1793,7 @@ export function TokensSection({ tokens }: { tokens: any[] }) {
   );
 }
 
-export function VoiceSection({ voice, kitId }: { voice: any; kitId: string }) {
+export function VoiceSection({ voice, kitId, ownerToken }: { voice: any; kitId: string; ownerToken?: string }) {
   if (!voice) return <Empty label="No voice analysis available" />;
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -1870,13 +1870,13 @@ export function VoiceSection({ voice, kitId }: { voice: any; kitId: string }) {
         </div>
       )}
       <div className="lg:col-span-2">
-        <SampleCopyGenerator kitId={kitId} />
+        {ownerToken ? <SampleCopyGenerator kitId={kitId} ownerToken={ownerToken} /> : null}
       </div>
     </div>
   );
 }
 
-function SampleCopyGenerator({ kitId }: { kitId: string }) {
+function SampleCopyGenerator({ kitId, ownerToken }: { kitId: string; ownerToken: string }) {
   const gen = useServerFn(generateSampleCopy);
   const [kind, setKind] = useState<"headline" | "cta" | "slide_title" | "email_intro" | "social_post">("headline");
   const [topic, setTopic] = useState("");
@@ -1888,7 +1888,7 @@ function SampleCopyGenerator({ kitId }: { kitId: string }) {
     setBusy(true);
     setOutput("");
     try {
-      const r = await gen({ data: { kitId, kind, topic: topic.trim() } });
+      const r = await gen({ data: { kitId, ownerToken, kind, topic: topic.trim() } });
       setOutput(r);
     } catch (e: any) {
       toast.error(e?.message ?? "Generation failed");
