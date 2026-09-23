@@ -1,7 +1,6 @@
 import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/lib/auth";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import appCss from "../styles.css?url";
 
@@ -90,11 +89,9 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SmoothScroll />
-        <Outlet />
-        <Toaster />
-      </AuthProvider>
+      <SmoothScroll />
+      <Outlet />
+      <Toaster />
     </QueryClientProvider>
   );
 }

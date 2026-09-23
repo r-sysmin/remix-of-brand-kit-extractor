@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/lib/auth";
 import { getAnonToken } from "@/lib/anon";
 import { getKit } from "@/lib/kits.functions";
 import { setKitShare } from "@/lib/share.functions";
@@ -74,7 +73,6 @@ type KitData = Awaited<ReturnType<ReturnType<typeof useServerFn<typeof getKit>>>
 
 function KitPage() {
   const { kitId } = Route.useParams();
-  const { user } = useAuth();
   const fetchKit = useServerFn(getKit);
   const retryExtract = useServerFn(extractKit);
   const [data, setData] = useState<KitData | null>(null);
@@ -83,7 +81,7 @@ function KitPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [editingUrl, setEditingUrl] = useState(false);
   const [urlDraft, setUrlDraft] = useState("");
-  const ownerToken = user?.id ?? getAnonToken();
+  const ownerToken = getAnonToken();
   const autoExtractionStarted = useRef(false);
 
   useEffect(() => {
@@ -319,7 +317,7 @@ function KitPage() {
                 voice={data.voice}
               />
               <SectionAnchor id="builder" label="Brand builder">
-                <BrandBuilderSection kitId={kit.id} onApplied={() => setReloadKey((k) => k + 1)} />
+                <BrandBuilderSection kitId={kit.id} ownerToken={ownerToken} onApplied={() => setReloadKey((k) => k + 1)} />
               </SectionAnchor>
               <SectionAnchor id="overview" label="Overview">
                 <OverviewSection
@@ -1965,8 +1963,7 @@ function ExportSection(props: {
   const resolveGoogleFonts = useServerFn(resolveGoogleFontFiles);
   const fetchAssets = useServerFn(fetchAssetFiles);
   const [shareBusy, setShareBusy] = useState(false);
-  const { user } = useAuth();
-  const ownerToken = user?.id ?? getAnonToken();
+  const ownerToken = getAnonToken();
 
   async function downloadPDF() {
     const blob = await buildBrandPDF({ name: props.kitName, ...props });

@@ -17,7 +17,7 @@ export type DesignVersionListItem = {
 };
 
 export const listDesignVersions = createServerFn({ method: "GET" })
-  .inputValidator(z.object({ data: z.object({ ownerToken: z.string().min(1).max(200) }) }).or(z.object({ ownerToken: z.string().min(1).max(200) })).transform((value) => "data" in value ? value.data : value).parse)
+  .inputValidator(z.object({ ownerToken: z.string().min(1).max(200) }).parse)
   .handler(async ({ data }) => {
     const { data: rows, error } = await getAdmin()
       .from("design_doc_versions")
@@ -64,6 +64,7 @@ export const saveDesignVersion = createServerFn({ method: "POST" })
     const { data: latest } = await supabase
       .from("design_doc_versions")
       .select("version")
+      .eq("owner_token_hash", hashDesignOwnerToken(data.ownerToken))
       .order("version", { ascending: false })
       .limit(1)
       .maybeSingle();
