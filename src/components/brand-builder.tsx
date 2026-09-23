@@ -23,7 +23,7 @@ const FIELD_LABELS: Record<keyof BrandProfile, { label: string; placeholder: str
 
 type Phase = "analyzing" | "ready" | "building" | "done" | "error";
 
-export function BrandBuilderSection({ kitId, onApplied }: { kitId: string; onApplied: () => void }) {
+export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: string; ownerToken: string; onApplied: () => void }) {
   const analyze = useServerFn(analyzeKitForBuilder);
   const build = useServerFn(buildBrandDirections);
   const apply = useServerFn(applyBrandDirection);
@@ -40,7 +40,7 @@ export function BrandBuilderSection({ kitId, onApplied }: { kitId: string; onApp
 
   useEffect(() => {
     let alive = true;
-    analyze({ data: { kitId } })
+    analyze({ data: { kitId, ownerToken } })
       .then((r) => {
         if (!alive) return;
         setProfile(r.profile);
@@ -56,7 +56,7 @@ export function BrandBuilderSection({ kitId, onApplied }: { kitId: string; onApp
     return () => {
       alive = false;
     };
-  }, [kitId, analyze]);
+  }, [kitId, ownerToken, analyze]);
 
   const canBuild = profile.offering.trim().length > 1 && profile.location.trim().length > 1;
 
@@ -65,7 +65,7 @@ export function BrandBuilderSection({ kitId, onApplied }: { kitId: string; onApp
     setError(null);
     setApplied(null);
     try {
-      const r = await build({ data: { kitId, profile } });
+      const r = await build({ data: { kitId, ownerToken, profile } });
       setMarket(r.market);
       setDirections(r.directions);
       setPhase("done");
@@ -78,7 +78,7 @@ export function BrandBuilderSection({ kitId, onApplied }: { kitId: string; onApp
   async function choose(i: number) {
     setApplying(i);
     try {
-      const r = await apply({ data: { kitId, direction: directions[i]!, location: profile.location } });
+      const r = await apply({ data: { kitId, ownerToken, direction: directions[i]!, location: profile.location } });
       setApplied(i);
       toast.success(`Added ${r.addedColors} colors, ${r.addedFonts} fonts, and a new voice`);
       onApplied();

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { getAnonToken } from "@/lib/anon";
 import { SiteHeader } from "@/components/site-header";
 import {
   listDesignVersions,
@@ -9,7 +10,7 @@ import {
   type DesignVersionListItem,
 } from "@/lib/design-doc.functions";
 
-export const Route = createFileRoute("/_authenticated/design")({
+export const Route = createFileRoute("/design")({
   head: () => ({
     meta: [
       { title: "Design system — Brand DNA" },
@@ -42,6 +43,7 @@ const SEED_FALLBACK = `# Brand DNA — Design System Document
 `;
 
 function DesignPage() {
+  const ownerToken = getAnonToken();
   const list = useServerFn(listDesignVersions);
   const get = useServerFn(getDesignVersion);
   const save = useServerFn(saveDesignVersion);
@@ -56,10 +58,10 @@ function DesignPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { versions: v } = await list();
+        const { versions: v } = await list({ data: { ownerToken } });
         setVersions(v);
         if (v.length > 0) {
-          const head = await get({ data: { id: v[0].id } });
+          const head = await get({ data: { id: v[0].id, ownerToken } });
           setMarkdown(head.markdown);
         } else {
           setMarkdown(SEED_FALLBACK);
@@ -68,14 +70,14 @@ function DesignPage() {
         setError(e instanceof Error ? e.message : "Failed to load");
       }
     })();
-  }, [list, get]);
+  }, [list, get, ownerToken]);
 
   async function onSave() {
     setBusy(true);
     setError(null);
     try {
-      await save({ data: { markdown, label: label.trim() || undefined } });
-      const { versions: v } = await list();
+      await save({ data: { markdown, label: label.trim() || undefined, ownerToken } });
+      const { versions: v } = await list({ data: { ownerToken } });
       setVersions(v);
       setEditing(false);
       setLabel("");

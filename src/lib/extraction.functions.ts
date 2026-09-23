@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertKitOwner } from "@/server/kit-auth.server";
 import {
   ExtractKitInputSchema,
@@ -11,26 +10,23 @@ import {
 } from "@/server/extraction.server";
 
 export const extractKit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data) => ExtractKitInputSchema.parse(data))
-  .handler(async ({ data, context }) => {
-    await assertKitOwner(data.kitId, context.userId);
+  .handler(async ({ data }) => {
+    await assertKitOwner(data.kitId, data.ownerToken);
     return extractKitImpl(data);
   });
 
 export const generateSampleCopy = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data) => GenerateSampleCopyInputSchema.parse(data))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     // Owner-only: brand voice is private data and this call spends AI credits.
-    await assertKitOwner(data.kitId, context.userId);
+    await assertKitOwner(data.kitId, data.ownerToken);
     return generateSampleCopyImpl(data);
   });
 
 export const harvestMoreAssets = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data) => HarvestMoreAssetsInputSchema.parse(data))
-  .handler(async ({ data, context }) => {
-    await assertKitOwner(data.kitId, context.userId);
+  .handler(async ({ data }) => {
+    await assertKitOwner(data.kitId, data.ownerToken);
     return harvestMoreAssetsImpl(data);
   });

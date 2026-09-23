@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
-import { assertKitOwner } from "@/server/kit-auth.server";
+import { assertKitOwner, hashOwnerToken } from "@/server/kit-auth.server";
 
 const STALE_PROCESSING_MS = 90 * 1000;
 
@@ -12,28 +11,25 @@ export const warmServer = createServerFn({ method: "GET" }).handler(async () => 
   return { ok: true, t: Date.now() };
 });
 
-// Create a kit row owned by the signed-in user. Ownership comes from the
-// verified session, never from request input.
+// Create a kit row owned by this browser's unguessable local key.
 export const createKit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      // Accepted for backward compatibility with older clients; ignored.
-      ownerToken: z.string().min(1).max(200).optional(),
-      isAuthed: z.boolean().optional(),
+      ownerToken: z.string().min(1).max(200),
       sourceType: z.enum(["url", "upload", "manual", "mixed"]),
       sourceUrl: z.string().url().optional(),
       name: z.string().max(120).optional(),
     }).parse,
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const admin = getAdmin();
     const row: Record<string, any> = {
       name: data.name ?? "Untitled brand kit",
       source_type: data.sourceType,
       source_url: data.sourceUrl ?? null,
       status: "pending",
-      user_id: context.userId,
+      user_id: null,
+      owner_token_hash: hashOwnerToken(data.ownerToken),
     };
 
     const { data: created, error } = await admin
@@ -48,17 +44,16 @@ export const createKit = createServerFn({ method: "POST" })
 // Fetch a kit + all related data. Owner-only; public share links are served by
 // `getSharedKit` instead.
 export const getKit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
-      ownerToken: z.string().min(1).max(200).optional(),
+      ownerToken: z.string().min(1).max(200),
       shareToken: z.string().min(1).max(200).optional(),
     }).parse,
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const admin = getAdmin();
-    let k = (await assertKitOwner(data.kitId, context.userId)) as any;
+    let k = (await assertKitOwner(data.kitId, data.ownerToken)) as any;
 
     const updatedAt = k.updated_at ? Date.parse(k.updated_at) : Date.now();
     if (
@@ -83,7 +78,7 @@ export const getKit = createServerFn({ method: "POST" })
 
     // Never ship ownership secrets to the browser: user_id can be replayed and
     // share_token is a capability URL.
-    const { user_id: _uid, share_token: st, ...safeKit } = k;
+    const { user_id: _uid, owner_token_hash: _ownerHash, share_token: st, ...safeKit } = k;
     const sanitized = { ...safeKit, isOwner: true, share_token: st ?? null };
 
     return {
@@ -97,17 +92,16 @@ export const getKit = createServerFn({ method: "POST" })
   });
 
 export const renameKit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
-      ownerToken: z.string().min(1).max(200).optional(),
+      ownerToken: z.string().min(1).max(200),
       name: z.string().min(1).max(120),
     }).parse,
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const admin = getAdmin();
-    await assertKitOwner(data.kitId, context.userId);
+    await assertKitOwner(data.kitId, data.ownerToken);
     const { error } = await admin
       .from("brand_kits")
       .update({ name: data.name })
@@ -117,16 +111,15 @@ export const renameKit = createServerFn({ method: "POST" })
   });
 
 export const deleteKit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
-      ownerToken: z.string().min(1).max(200).optional(),
+      ownerToken: z.string().min(1).max(200),
     }).parse,
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const admin = getAdmin();
-    await assertKitOwner(data.kitId, context.userId);
+    await assertKitOwner(data.kitId, data.ownerToken);
     // Explicit child cleanup (no FK cascade defined)
     await Promise.all([
       admin.from("kit_colors").delete().eq("kit_id", data.kitId),
@@ -141,23 +134,23 @@ export const deleteKit = createServerFn({ method: "POST" })
   });
 
 export const duplicateKit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
-      ownerToken: z.string().min(1).max(200).optional(),
+      ownerToken: z.string().min(1).max(200),
     }).parse,
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const admin = getAdmin();
-    const src = await assertKitOwner(data.kitId, context.userId);
-    const { id: _omitId, created_at: _ca, updated_at: _ua, share_token: _st, ...rest } = src as any;
+    const src = await assertKitOwner(data.kitId, data.ownerToken);
+    const { id: _omitId, created_at: _ca, updated_at: _ua, share_token: _st, owner_token_hash: _oh, ...rest } = src as any;
     const insertRow = {
       ...rest,
       name: `${src.name ?? "Untitled"} (copy)`,
       share_token: null,
       is_public: false,
-      user_id: context.userId,
+      user_id: null,
+      owner_token_hash: hashOwnerToken(data.ownerToken),
     };
     const { data: created, error } = await admin
       .from("brand_kits")
@@ -187,25 +180,22 @@ export const duplicateKit = createServerFn({ method: "POST" })
     return { kit: created };
   });
 
-// List the signed-in user's own kits.
+// List kits belonging to this browser key.
 export const listKitsByOwner = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      // Accepted for backward compatibility with older clients; ignored.
-      ownerToken: z.string().min(1).max(200).optional(),
-      ownerTokens: z.array(z.string().min(1).max(200)).max(20).optional(),
+      ownerToken: z.string().min(1).max(200),
       // Optional cap — used by the landing page recent-kits widget to keep
       // the round-trip lean (3 rows + their colors/fonts/logo only).
       limit: z.number().int().min(1).max(200).optional(),
     }).parse,
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const admin = getAdmin();
     let query = admin
       .from("brand_kits")
       .select("id, name, source_url, status, created_at")
-      .eq("user_id", context.userId)
+      .eq("owner_token_hash", hashOwnerToken(data.ownerToken))
       .order("created_at", { ascending: false });
     if (data.limit) query = query.limit(data.limit);
     const { data: kitRows, error } = await query;
@@ -321,19 +311,18 @@ export const listKitsByOwner = createServerFn({ method: "POST" })
 
 // Delete many kits at once. Silently skips kits the caller does not own.
 export const bulkDeleteKits = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       kitIds: z.array(z.string().uuid()).min(1).max(200),
-      ownerToken: z.string().min(1).max(200).optional(),
+      ownerToken: z.string().min(1).max(200),
     }).parse,
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const admin = getAdmin();
     const { data: rows } = await admin
       .from("brand_kits")
       .select("id")
-      .eq("user_id", context.userId)
+      .eq("owner_token_hash", hashOwnerToken(data.ownerToken))
       .in("id", data.kitIds);
     const ownedIds = (rows ?? []).map((r: any) => r.id as string);
     if (ownedIds.length === 0) return { deleted: 0 };

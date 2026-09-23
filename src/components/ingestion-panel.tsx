@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { useAuth } from "@/lib/auth";
 import { getAnonToken } from "@/lib/anon";
 import { createKit, warmServer } from "@/lib/kits.functions";
 import { extractKit } from "@/lib/extraction.functions";
@@ -15,7 +14,6 @@ const MAX_BYTES = 20 * 1024 * 1024;
 
 export function IngestionPanel() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const create = useServerFn(createKit);
   const extract = useServerFn(extractKit);
   const upload = useServerFn(uploadBrandSource);
@@ -32,7 +30,7 @@ export function IngestionPanel() {
   const dragCounter = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const ownerToken = user?.id ?? getAnonToken();
+  const ownerToken = getAnonToken();
 
   // Probe the server function layer before allowing extraction. In the Lovable
   // sandbox the SSR HTML can render before the dev server / worker is actually
@@ -144,11 +142,6 @@ export function IngestionPanel() {
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
     if (busy) return;
-    if (!user) {
-      toast.error("Sign in to extract a brand kit");
-      navigate({ to: "/auth", search: { next: "/" } });
-      return;
-    }
     if (!ready) {
       toast.error("Initializing — one moment");
       return;
@@ -178,7 +171,7 @@ export function IngestionPanel() {
       const sourceType: "url" | "upload" | "mixed" =
         hasUrl && hasFiles ? "mixed" : hasUrl ? "url" : "upload";
       const { id } = await create({
-        data: { ownerToken, isAuthed: !!user, sourceType, sourceUrl: normUrl },
+        data: { ownerToken, sourceType, sourceUrl: normUrl },
       });
 
       let imageUrls: string[] | undefined;

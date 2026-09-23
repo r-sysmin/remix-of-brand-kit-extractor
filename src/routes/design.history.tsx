@@ -1,13 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { getAnonToken } from "@/lib/anon";
 import { SiteHeader } from "@/components/site-header";
 import {
   listDesignVersions,
   type DesignVersionListItem,
 } from "@/lib/design-doc.functions";
 
-export const Route = createFileRoute("/_authenticated/design/history")({
+export const Route = createFileRoute("/design/history")({
   head: () => ({
     meta: [
       { title: "Design history — Brand DNA" },
@@ -21,6 +22,7 @@ const eyebrow = "font-mono text-[11px] uppercase tracking-[0.2em] text-muted-for
 const mono = "font-mono text-[12px] uppercase tracking-[0.12em]";
 
 function HistoryPage() {
+  const ownerToken = getAnonToken();
   const navigate = useNavigate();
   const list = useServerFn(listDesignVersions);
 
@@ -30,14 +32,14 @@ function HistoryPage() {
   const [busy, setBusy] = useState(true);
 
   useEffect(() => {
-    list()
+    list({ data: { ownerToken } })
       .then(({ versions: v }) => {
         setVersions(v);
         if (v.length >= 1) setAId(v[0].id);
         if (v.length >= 2) setBId(v[1].id);
       })
       .finally(() => setBusy(false));
-  }, [list]);
+  }, [list, ownerToken]);
 
   function compare() {
     if (!aId || !bId || aId === bId) return;

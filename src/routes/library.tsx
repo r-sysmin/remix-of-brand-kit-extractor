@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/site-header";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
-import { getAnonToken, getAnonTokenHistory } from "@/lib/anon";
+import { getAnonToken } from "@/lib/anon";
 import { readKitsCache, writeKitsCache } from "@/lib/kits-cache";
 import { useAutoImportFonts, renderFamilyFor } from "@/lib/font-loader";
 import {
@@ -16,7 +16,7 @@ import {
 } from "@/lib/kits.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/library")({
+export const Route = createFileRoute("/library")({
   head: () => ({
     meta: [
       { title: "Library — Brand DNA" },
@@ -90,7 +90,7 @@ function LibraryPage() {
     (async () => {
       try {
         const res = await list({
-          data: { ownerToken, ownerTokens: getAnonTokenHistory() },
+          data: { ownerToken },
         });
         const next = (res.kits as Kit[]) ?? [];
         // Avoid wiping a populated cache if the server returns empty

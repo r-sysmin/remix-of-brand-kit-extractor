@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getAdmin } from "@/server/supabase-admin.server";
+import { assertDesignOwnerHash, hashDesignOwnerToken } from "@/server/design-auth.server";
 import {
   parseDesignDoc,
   diffDesignDocs,
@@ -16,28 +17,27 @@ export type DesignVersionListItem = {
 };
 
 export const listDesignVersions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase } = context;
-    const { data, error } = await supabase
+  .inputValidator(z.object({ ownerToken: z.string().min(1).max(200) }).parse)
+  .handler(async ({ data }) => {
+    const { data: rows, error } = await getAdmin()
       .from("design_doc_versions")
       .select("id, version, label, created_at")
+      .eq("owner_token_hash", hashDesignOwnerToken(data.ownerToken))
       .order("version", { ascending: false });
     if (error) throw new Error(error.message);
-    return { versions: (data ?? []) as DesignVersionListItem[] };
+    return { versions: (rows ?? []) as DesignVersionListItem[] };
   });
 
 export const getDesignVersion = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ id: z.string().uuid() }).parse)
-  .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: row, error } = await supabase
+  .inputValidator(z.object({ id: z.string().uuid(), ownerToken: z.string().min(1).max(200) }).parse)
+  .handler(async ({ data }) => {
+    const { data: row, error } = await getAdmin()
       .from("design_doc_versions")
-      .select("id, version, label, markdown, parsed, created_at")
+      .select("id, version, label, markdown, parsed, created_at, owner_token_hash")
       .eq("id", data.id)
       .single();
     if (error || !row) throw new Error(error?.message ?? "Version not found");
+    assertDesignOwnerHash(row.owner_token_hash, data.ownerToken);
     return row as {
       id: string;
       version: number;
@@ -49,21 +49,22 @@ export const getDesignVersion = createServerFn({ method: "POST" })
   });
 
 export const saveDesignVersion = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
+      ownerToken: z.string().min(1).max(200),
       markdown: z.string().min(1).max(500_000),
       label: z.string().max(200).optional(),
     }).parse,
   )
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+  .handler(async ({ data }) => {
+    const supabase = getAdmin();
     const parsed = parseDesignDoc(data.markdown);
 
     // Find next version number.
     const { data: latest } = await supabase
       .from("design_doc_versions")
       .select("version")
+      .eq("owner_token_hash", hashDesignOwnerToken(data.ownerToken))
       .order("version", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -74,7 +75,8 @@ export const saveDesignVersion = createServerFn({ method: "POST" })
       label: data.label ?? null,
       markdown: data.markdown,
       parsed: parsed as unknown,
-      created_by: userId,
+      created_by: null,
+      owner_token_hash: hashDesignOwnerToken(data.ownerToken),
     };
     const { data: row, error } = await (supabase
       .from("design_doc_versions") as any)
@@ -86,27 +88,28 @@ export const saveDesignVersion = createServerFn({ method: "POST" })
   });
 
 export const diffDesignVersions = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
+      ownerToken: z.string().min(1).max(200),
       aId: z.string().uuid(),
       bId: z.string().uuid(),
     }).parse,
   )
-  .handler(async ({ data, context }): Promise<{
+  .handler(async ({ data }): Promise<{
     a: { version: number; label: string | null; created_at: string };
     b: { version: number; label: string | null; created_at: string };
     diff: DesignDocDiff;
   }> => {
-    const { supabase } = context;
-    const { data: rows, error } = await supabase
+    const { data: rows, error } = await getAdmin()
       .from("design_doc_versions")
-      .select("id, version, label, parsed, markdown, created_at")
+      .select("id, version, label, parsed, markdown, created_at, owner_token_hash")
       .in("id", [data.aId, data.bId]);
     if (error) throw new Error(error.message);
     if (!rows || rows.length < 2) throw new Error("Both versions are required");
-    const a = rows.find((r) => r.id === data.aId)!;
-    const b = rows.find((r) => r.id === data.bId)!;
+    rows.forEach((row) => assertDesignOwnerHash(row.owner_token_hash, data.ownerToken));
+    const a = rows.find((r) => r.id === data.aId);
+    const b = rows.find((r) => r.id === data.bId);
+    if (!a || !b) throw new Error("Both versions are required");
     const parsedA =
       a.parsed && Object.keys(a.parsed as object).length > 0
         ? (a.parsed as ParsedDesignDoc)

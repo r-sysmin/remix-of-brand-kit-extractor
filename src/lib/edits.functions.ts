@@ -1,11 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
 import { assertKitOwner } from "@/server/kit-auth.server";
 
-async function ownedAdmin(kitId: string, userId: string) {
-  await assertKitOwner(kitId, userId);
+async function ownedAdmin(kitId: string, ownerToken: string) {
+  await assertKitOwner(kitId, ownerToken);
   return getAdmin();
 }
 
@@ -14,14 +13,13 @@ const HEX = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const DeleteAssetSchema = z.object({
   kitId: z.string().uuid(),
   assetId: z.string().uuid(),
-  ownerToken: z.string().min(1).max(200).optional(),
+  ownerToken: z.string().min(1).max(200),
 });
 
 export const deleteKitAsset = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) => DeleteAssetSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const admin = await ownedAdmin(data.kitId, context.userId);
+  .handler(async ({ data }) => {
+    const admin = await ownedAdmin(data.kitId, data.ownerToken);
     const { data: asset } = await admin
       .from("kit_assets")
       .select("storage_path")
@@ -43,14 +41,13 @@ export const deleteKitAsset = createServerFn({ method: "POST" })
 const DeleteColorSchema = z.object({
   kitId: z.string().uuid(),
   colorId: z.string().uuid(),
-  ownerToken: z.string().min(1).max(200).optional(),
+  ownerToken: z.string().min(1).max(200),
 });
 
 export const deleteKitColor = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) => DeleteColorSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const admin = await ownedAdmin(data.kitId, context.userId);
+  .handler(async ({ data }) => {
+    const admin = await ownedAdmin(data.kitId, data.ownerToken);
     const { error } = await admin
       .from("kit_colors")
       .delete()
@@ -63,17 +60,16 @@ export const deleteKitColor = createServerFn({ method: "POST" })
 const UpdateColorSchema = z.object({
   kitId: z.string().uuid(),
   colorId: z.string().uuid(),
-  ownerToken: z.string().min(1).max(200).optional(),
+  ownerToken: z.string().min(1).max(200),
   hex: z.string().regex(HEX).optional(),
   role: z.string().min(1).max(40).optional(),
   name: z.string().min(1).max(80).nullable().optional(),
 });
 
 export const updateKitColor = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) => UpdateColorSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const admin = await ownedAdmin(data.kitId, context.userId);
+  .handler(async ({ data }) => {
+    const admin = await ownedAdmin(data.kitId, data.ownerToken);
     const patch: Record<string, any> = {};
     if (data.hex) patch.hex = data.hex.toUpperCase();
     if (data.role) patch.role = data.role;

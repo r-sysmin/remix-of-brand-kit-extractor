@@ -1,6 +1,6 @@
-// Ownership gate for brand kits. Every kit server function runs through here
-// with the user id taken from a verified Supabase session (never from request
-// input), so a caller can only touch kits their own account owns.
+// Ownership gate for browser-owned brand kits. The usable key remains in the
+// browser; only its one-way hash is stored with the kit.
+import { createHash, timingSafeEqual } from "node:crypto";
 import { getAdmin } from "@/server/supabase-admin.server";
 
 export class KitAccessError extends Error {
@@ -10,8 +10,18 @@ export class KitAccessError extends Error {
   }
 }
 
-export async function assertKitOwner(kitId: string, userId: string) {
-  if (!userId) throw new KitAccessError();
+export function hashOwnerToken(ownerToken: string): string {
+  if (!ownerToken || ownerToken.length > 200) throw new KitAccessError();
+  return createHash("sha256").update(ownerToken, "utf8").digest("hex");
+}
+
+function hashesMatch(stored: string | null, supplied: string): boolean {
+  if (!stored || stored.length !== supplied.length) return false;
+  return timingSafeEqual(Buffer.from(stored), Buffer.from(supplied));
+}
+
+export async function assertKitOwner(kitId: string, ownerToken: string) {
+  const suppliedHash = hashOwnerToken(ownerToken);
   const admin = getAdmin();
   const { data: kit, error } = await admin
     .from("brand_kits")
@@ -21,7 +31,7 @@ export async function assertKitOwner(kitId: string, userId: string) {
   // Same message whether the kit is missing or owned by somebody else, so the
   // endpoint cannot be used to probe which kit ids exist.
   if (error || !kit) throw new KitAccessError();
-  const owner = (kit as { user_id: string | null }).user_id;
-  if (!owner || owner !== userId) throw new KitAccessError();
+  const ownerHash = (kit as { owner_token_hash: string | null }).owner_token_hash;
+  if (!hashesMatch(ownerHash, suppliedHash)) throw new KitAccessError();
   return kit as Record<string, any>;
 }

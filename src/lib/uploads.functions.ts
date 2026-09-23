@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdmin } from "@/server/supabase-admin.server";
 import { assertKitOwner } from "@/server/kit-auth.server";
 
@@ -49,7 +48,6 @@ export type UploadResult = {
 
 // Server fn that accepts FormData with: kitId, ownerToken, file (repeatable)
 export const uploadBrandSource = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => {
     if (!(data instanceof FormData)) throw new Error("Expected FormData");
     const kitId = String(data.get("kitId") ?? "");
@@ -64,11 +62,11 @@ export const uploadBrandSource = createServerFn({ method: "POST" })
     }
     return { kitId, ownerToken, files };
   })
-  .handler(async ({ data, context }): Promise<UploadResult> => {
+  .handler(async ({ data }): Promise<UploadResult> => {
     const admin = getAdmin();
 
-    // Owner-only: ownership comes from the verified session, not the request.
-    await assertKitOwner(data.kitId, context.userId);
+    // Owner-only: compare a one-way hash of the browser key before uploading.
+    await assertKitOwner(data.kitId, data.ownerToken);
 
 
     const imageUrls: string[] = [];

@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/lib/auth";
 import { getAnonToken } from "@/lib/anon";
 import { getKit } from "@/lib/kits.functions";
 import { setKitShare } from "@/lib/share.functions";
@@ -47,7 +46,7 @@ import { BrandBuilderSection } from "@/components/brand-builder";
 
 const PENDING_EXTRACTION_PREFIX = "branddna.pendingExtraction:";
 
-export const Route = createFileRoute("/_authenticated/kit/$kitId")({
+export const Route = createFileRoute("/kit/$kitId")({
   head: ({ params }) => ({
     meta: [
       { title: "Brand kit — Brand DNA" },
@@ -74,7 +73,6 @@ type KitData = Awaited<ReturnType<ReturnType<typeof useServerFn<typeof getKit>>>
 
 function KitPage() {
   const { kitId } = Route.useParams();
-  const { user } = useAuth();
   const fetchKit = useServerFn(getKit);
   const retryExtract = useServerFn(extractKit);
   const [data, setData] = useState<KitData | null>(null);
@@ -83,7 +81,7 @@ function KitPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [editingUrl, setEditingUrl] = useState(false);
   const [urlDraft, setUrlDraft] = useState("");
-  const ownerToken = user?.id ?? getAnonToken();
+  const ownerToken = getAnonToken();
   const autoExtractionStarted = useRef(false);
 
   useEffect(() => {
@@ -319,7 +317,7 @@ function KitPage() {
                 voice={data.voice}
               />
               <SectionAnchor id="builder" label="Brand builder">
-                <BrandBuilderSection kitId={kit.id} onApplied={() => setReloadKey((k) => k + 1)} />
+                <BrandBuilderSection kitId={kit.id} ownerToken={ownerToken} onApplied={() => setReloadKey((k) => k + 1)} />
               </SectionAnchor>
               <SectionAnchor id="overview" label="Overview">
                 <OverviewSection
@@ -360,7 +358,7 @@ function KitPage() {
                 <TokensSection tokens={data.tokens} />
               </SectionAnchor>
               <SectionAnchor id="voice" label="Voice">
-                <VoiceSection voice={data.voice} kitId={kit.id} />
+                <VoiceSection voice={data.voice} kitId={kit.id} ownerToken={ownerToken} />
               </SectionAnchor>
               <SectionAnchor id="export" label="Export">
                 <ExportSection
@@ -1795,7 +1793,7 @@ export function TokensSection({ tokens }: { tokens: any[] }) {
   );
 }
 
-export function VoiceSection({ voice, kitId }: { voice: any; kitId: string }) {
+export function VoiceSection({ voice, kitId, ownerToken }: { voice: any; kitId: string; ownerToken?: string }) {
   if (!voice) return <Empty label="No voice analysis available" />;
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -1872,13 +1870,13 @@ export function VoiceSection({ voice, kitId }: { voice: any; kitId: string }) {
         </div>
       )}
       <div className="lg:col-span-2">
-        <SampleCopyGenerator kitId={kitId} />
+        {ownerToken ? <SampleCopyGenerator kitId={kitId} ownerToken={ownerToken} /> : null}
       </div>
     </div>
   );
 }
 
-function SampleCopyGenerator({ kitId }: { kitId: string }) {
+function SampleCopyGenerator({ kitId, ownerToken }: { kitId: string; ownerToken: string }) {
   const gen = useServerFn(generateSampleCopy);
   const [kind, setKind] = useState<"headline" | "cta" | "slide_title" | "email_intro" | "social_post">("headline");
   const [topic, setTopic] = useState("");
@@ -1890,7 +1888,7 @@ function SampleCopyGenerator({ kitId }: { kitId: string }) {
     setBusy(true);
     setOutput("");
     try {
-      const r = await gen({ data: { kitId, kind, topic: topic.trim() } });
+      const r = await gen({ data: { kitId, ownerToken, kind, topic: topic.trim() } });
       setOutput(r);
     } catch (e: any) {
       toast.error(e?.message ?? "Generation failed");
@@ -1965,8 +1963,7 @@ function ExportSection(props: {
   const resolveGoogleFonts = useServerFn(resolveGoogleFontFiles);
   const fetchAssets = useServerFn(fetchAssetFiles);
   const [shareBusy, setShareBusy] = useState(false);
-  const { user } = useAuth();
-  const ownerToken = user?.id ?? getAnonToken();
+  const ownerToken = getAnonToken();
 
   async function downloadPDF() {
     const blob = await buildBrandPDF({ name: props.kitName, ...props });
