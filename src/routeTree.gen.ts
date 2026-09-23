@@ -9,24 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StartHereRouteImport } from './routes/start-here'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as KeywordsRouteImport } from './routes/keywords'
+import { Route as DesignRouteImport } from './routes/design'
 import { Route as CompetitorsRouteImport } from './routes/competitors'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShareShareTokenRouteImport } from './routes/share.$shareToken'
-import { Route as AuthenticatedStartHereRouteImport } from './routes/_authenticated/start-here'
-import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
-import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
+import { Route as KitKitIdRouteImport } from './routes/kit.$kitId'
+import { Route as DesignHistoryRouteImport } from './routes/design.history'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as AuthenticatedKitKitIdRouteImport } from './routes/_authenticated/kit.$kitId'
-import { Route as AuthenticatedDesignHistoryRouteImport } from './routes/_authenticated/design.history'
-import { Route as AuthenticatedDesignHistoryDiffRouteImport } from './routes/_authenticated/design.history.diff'
+import { Route as DesignHistoryDiffRouteImport } from './routes/design.history.diff'
 
+const StartHereRoute = StartHereRouteImport.update({
+  id: '/start-here',
+  path: '/start-here',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KeywordsRoute = KeywordsRouteImport.update({
@@ -34,18 +42,14 @@ const KeywordsRoute = KeywordsRouteImport.update({
   path: '/keywords',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DesignRoute = DesignRouteImport.update({
+  id: '/design',
+  path: '/design',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompetitorsRoute = CompetitorsRouteImport.update({
   id: '/competitors',
   path: '/competitors',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -58,20 +62,15 @@ const ShareShareTokenRoute = ShareShareTokenRouteImport.update({
   path: '/share/$shareToken',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedStartHereRoute = AuthenticatedStartHereRouteImport.update({
-  id: '/start-here',
-  path: '/start-here',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const KitKitIdRoute = KitKitIdRouteImport.update({
+  id: '/kit/$kitId',
+  path: '/kit/$kitId',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDesignRoute = AuthenticatedDesignRouteImport.update({
-  id: '/design',
-  path: '/design',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const DesignHistoryRoute = DesignHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => DesignRoute,
 } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
   Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
@@ -79,138 +78,134 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedKitKitIdRoute = AuthenticatedKitKitIdRouteImport.update({
-  id: '/kit/$kitId',
-  path: '/kit/$kitId',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const DesignHistoryDiffRoute = DesignHistoryDiffRouteImport.update({
+  id: '/diff',
+  path: '/diff',
+  getParentRoute: () => DesignHistoryRoute,
 } as any)
-const AuthenticatedDesignHistoryRoute =
-  AuthenticatedDesignHistoryRouteImport.update({
-    id: '/history',
-    path: '/history',
-    getParentRoute: () => AuthenticatedDesignRoute,
-  } as any)
-const AuthenticatedDesignHistoryDiffRoute =
-  AuthenticatedDesignHistoryDiffRouteImport.update({
-    id: '/diff',
-    path: '/diff',
-    getParentRoute: () => AuthenticatedDesignHistoryRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
   '/competitors': typeof CompetitorsRoute
+  '/design': typeof DesignRouteWithChildren
   '/keywords': typeof KeywordsRoute
+  '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
+  '/start-here': typeof StartHereRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/design': typeof AuthenticatedDesignRouteWithChildren
-  '/library': typeof AuthenticatedLibraryRoute
-  '/start-here': typeof AuthenticatedStartHereRoute
+  '/design/history': typeof DesignHistoryRouteWithChildren
+  '/kit/$kitId': typeof KitKitIdRoute
   '/share/$shareToken': typeof ShareShareTokenRoute
-  '/design/history': typeof AuthenticatedDesignHistoryRouteWithChildren
-  '/kit/$kitId': typeof AuthenticatedKitKitIdRoute
-  '/design/history/diff': typeof AuthenticatedDesignHistoryDiffRoute
+  '/design/history/diff': typeof DesignHistoryDiffRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
   '/competitors': typeof CompetitorsRoute
+  '/design': typeof DesignRouteWithChildren
   '/keywords': typeof KeywordsRoute
+  '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
+  '/start-here': typeof StartHereRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/design': typeof AuthenticatedDesignRouteWithChildren
-  '/library': typeof AuthenticatedLibraryRoute
-  '/start-here': typeof AuthenticatedStartHereRoute
+  '/design/history': typeof DesignHistoryRouteWithChildren
+  '/kit/$kitId': typeof KitKitIdRoute
   '/share/$shareToken': typeof ShareShareTokenRoute
-  '/design/history': typeof AuthenticatedDesignHistoryRouteWithChildren
-  '/kit/$kitId': typeof AuthenticatedKitKitIdRoute
-  '/design/history/diff': typeof AuthenticatedDesignHistoryDiffRoute
+  '/design/history/diff': typeof DesignHistoryDiffRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
   '/competitors': typeof CompetitorsRoute
+  '/design': typeof DesignRouteWithChildren
   '/keywords': typeof KeywordsRoute
+  '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
+  '/start-here': typeof StartHereRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/_authenticated/design': typeof AuthenticatedDesignRouteWithChildren
-  '/_authenticated/library': typeof AuthenticatedLibraryRoute
-  '/_authenticated/start-here': typeof AuthenticatedStartHereRoute
+  '/design/history': typeof DesignHistoryRouteWithChildren
+  '/kit/$kitId': typeof KitKitIdRoute
   '/share/$shareToken': typeof ShareShareTokenRoute
-  '/_authenticated/design/history': typeof AuthenticatedDesignHistoryRouteWithChildren
-  '/_authenticated/kit/$kitId': typeof AuthenticatedKitKitIdRoute
-  '/_authenticated/design/history/diff': typeof AuthenticatedDesignHistoryDiffRoute
+  '/design/history/diff': typeof DesignHistoryDiffRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/auth'
     | '/competitors'
-    | '/keywords'
-    | '/mcp'
-    | '/.well-known/oauth-protected-resource'
     | '/design'
+    | '/keywords'
     | '/library'
+    | '/mcp'
     | '/start-here'
-    | '/share/$shareToken'
+    | '/.well-known/oauth-protected-resource'
     | '/design/history'
     | '/kit/$kitId'
+    | '/share/$shareToken'
     | '/design/history/diff'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/auth'
     | '/competitors'
-    | '/keywords'
-    | '/mcp'
-    | '/.well-known/oauth-protected-resource'
     | '/design'
+    | '/keywords'
     | '/library'
+    | '/mcp'
     | '/start-here'
-    | '/share/$shareToken'
+    | '/.well-known/oauth-protected-resource'
     | '/design/history'
     | '/kit/$kitId'
+    | '/share/$shareToken'
     | '/design/history/diff'
   id:
     | '__root__'
     | '/'
-    | '/_authenticated'
-    | '/auth'
     | '/competitors'
+    | '/design'
     | '/keywords'
+    | '/library'
     | '/mcp'
+    | '/start-here'
     | '/.well-known/oauth-protected-resource'
-    | '/_authenticated/design'
-    | '/_authenticated/library'
-    | '/_authenticated/start-here'
+    | '/design/history'
+    | '/kit/$kitId'
     | '/share/$shareToken'
-    | '/_authenticated/design/history'
-    | '/_authenticated/kit/$kitId'
-    | '/_authenticated/design/history/diff'
+    | '/design/history/diff'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
   CompetitorsRoute: typeof CompetitorsRoute
+  DesignRoute: typeof DesignRouteWithChildren
   KeywordsRoute: typeof KeywordsRoute
+  LibraryRoute: typeof LibraryRoute
   McpRoute: typeof McpRoute
+  StartHereRoute: typeof StartHereRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  KitKitIdRoute: typeof KitKitIdRoute
   ShareShareTokenRoute: typeof ShareShareTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/start-here': {
+      id: '/start-here'
+      path: '/start-here'
+      fullPath: '/start-here'
+      preLoaderRoute: typeof StartHereRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mcp': {
       id: '/mcp'
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/keywords': {
@@ -220,25 +215,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KeywordsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/design': {
+      id: '/design'
+      path: '/design'
+      fullPath: '/design'
+      preLoaderRoute: typeof DesignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/competitors': {
       id: '/competitors'
       path: '/competitors'
       fullPath: '/competitors'
       preLoaderRoute: typeof CompetitorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -255,26 +243,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShareShareTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/start-here': {
-      id: '/_authenticated/start-here'
-      path: '/start-here'
-      fullPath: '/start-here'
-      preLoaderRoute: typeof AuthenticatedStartHereRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/kit/$kitId': {
+      id: '/kit/$kitId'
+      path: '/kit/$kitId'
+      fullPath: '/kit/$kitId'
+      preLoaderRoute: typeof KitKitIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/library': {
-      id: '/_authenticated/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof AuthenticatedLibraryRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/design': {
-      id: '/_authenticated/design'
-      path: '/design'
-      fullPath: '/design'
-      preLoaderRoute: typeof AuthenticatedDesignRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/design/history': {
+      id: '/design/history'
+      path: '/history'
+      fullPath: '/design/history'
+      preLoaderRoute: typeof DesignHistoryRouteImport
+      parentRoute: typeof DesignRoute
     }
     '/.well-known/oauth-protected-resource': {
       id: '/.well-known/oauth-protected-resource'
@@ -283,81 +264,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/kit/$kitId': {
-      id: '/_authenticated/kit/$kitId'
-      path: '/kit/$kitId'
-      fullPath: '/kit/$kitId'
-      preLoaderRoute: typeof AuthenticatedKitKitIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/design/history': {
-      id: '/_authenticated/design/history'
-      path: '/history'
-      fullPath: '/design/history'
-      preLoaderRoute: typeof AuthenticatedDesignHistoryRouteImport
-      parentRoute: typeof AuthenticatedDesignRoute
-    }
-    '/_authenticated/design/history/diff': {
-      id: '/_authenticated/design/history/diff'
+    '/design/history/diff': {
+      id: '/design/history/diff'
       path: '/diff'
       fullPath: '/design/history/diff'
-      preLoaderRoute: typeof AuthenticatedDesignHistoryDiffRouteImport
-      parentRoute: typeof AuthenticatedDesignHistoryRoute
+      preLoaderRoute: typeof DesignHistoryDiffRouteImport
+      parentRoute: typeof DesignHistoryRoute
     }
   }
 }
 
-interface AuthenticatedDesignHistoryRouteChildren {
-  AuthenticatedDesignHistoryDiffRoute: typeof AuthenticatedDesignHistoryDiffRoute
+interface DesignHistoryRouteChildren {
+  DesignHistoryDiffRoute: typeof DesignHistoryDiffRoute
 }
 
-const AuthenticatedDesignHistoryRouteChildren: AuthenticatedDesignHistoryRouteChildren =
-  {
-    AuthenticatedDesignHistoryDiffRoute: AuthenticatedDesignHistoryDiffRoute,
-  }
-
-const AuthenticatedDesignHistoryRouteWithChildren =
-  AuthenticatedDesignHistoryRoute._addFileChildren(
-    AuthenticatedDesignHistoryRouteChildren,
-  )
-
-interface AuthenticatedDesignRouteChildren {
-  AuthenticatedDesignHistoryRoute: typeof AuthenticatedDesignHistoryRouteWithChildren
+const DesignHistoryRouteChildren: DesignHistoryRouteChildren = {
+  DesignHistoryDiffRoute: DesignHistoryDiffRoute,
 }
 
-const AuthenticatedDesignRouteChildren: AuthenticatedDesignRouteChildren = {
-  AuthenticatedDesignHistoryRoute: AuthenticatedDesignHistoryRouteWithChildren,
+const DesignHistoryRouteWithChildren = DesignHistoryRoute._addFileChildren(
+  DesignHistoryRouteChildren,
+)
+
+interface DesignRouteChildren {
+  DesignHistoryRoute: typeof DesignHistoryRouteWithChildren
 }
 
-const AuthenticatedDesignRouteWithChildren =
-  AuthenticatedDesignRoute._addFileChildren(AuthenticatedDesignRouteChildren)
-
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedDesignRoute: typeof AuthenticatedDesignRouteWithChildren
-  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
-  AuthenticatedStartHereRoute: typeof AuthenticatedStartHereRoute
-  AuthenticatedKitKitIdRoute: typeof AuthenticatedKitKitIdRoute
+const DesignRouteChildren: DesignRouteChildren = {
+  DesignHistoryRoute: DesignHistoryRouteWithChildren,
 }
 
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedDesignRoute: AuthenticatedDesignRouteWithChildren,
-  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
-  AuthenticatedStartHereRoute: AuthenticatedStartHereRoute,
-  AuthenticatedKitKitIdRoute: AuthenticatedKitKitIdRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+const DesignRouteWithChildren =
+  DesignRoute._addFileChildren(DesignRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
   CompetitorsRoute: CompetitorsRoute,
+  DesignRoute: DesignRouteWithChildren,
   KeywordsRoute: KeywordsRoute,
+  LibraryRoute: LibraryRoute,
   McpRoute: McpRoute,
+  StartHereRoute: StartHereRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  KitKitIdRoute: KitKitIdRoute,
   ShareShareTokenRoute: ShareShareTokenRoute,
 }
 export const routeTree = rootRouteImport
