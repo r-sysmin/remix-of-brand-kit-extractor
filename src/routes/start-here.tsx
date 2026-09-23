@@ -67,8 +67,8 @@ function StartHerePage() {
 
           <SubHeading>Pricing — mostly free</SubHeading>
           <P>
-            Firecrawl gives every new account <strong>500 free credits</strong>{" "}
-            on sign-up, no card required. One brand extraction typically uses
+            Firecrawl includes <strong>500 free credits</strong>{" "}
+            with its free account, no card required. One brand extraction typically uses
             1–5 credits, so casual use rarely leaves the free tier. If you do
             run out, their Hobby plan starts at <strong>$16/mo</strong> for
             3,000 credits — only needed for heavy or commercial use.
