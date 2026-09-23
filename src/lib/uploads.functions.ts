@@ -65,7 +65,7 @@ export const uploadBrandSource = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<UploadResult> => {
     const admin = getAdmin();
 
-    // Owner-only: ownership comes from the verified session, not the request.
+    // Owner-only: compare a one-way hash of the browser key before uploading.
     await assertKitOwner(data.kitId, data.ownerToken);
 
 

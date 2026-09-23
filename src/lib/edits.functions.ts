@@ -3,8 +3,8 @@ import { z } from "zod";
 import { getAdmin } from "@/server/supabase-admin.server";
 import { assertKitOwner } from "@/server/kit-auth.server";
 
-async function ownedAdmin(kitId: string, userId: string) {
-  await assertKitOwner(kitId, userId);
+async function ownedAdmin(kitId: string, ownerToken: string) {
+  await assertKitOwner(kitId, ownerToken);
   return getAdmin();
 }
 
@@ -13,7 +13,7 @@ const HEX = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const DeleteAssetSchema = z.object({
   kitId: z.string().uuid(),
   assetId: z.string().uuid(),
-  ownerToken: z.string().min(1).max(200).optional(),
+  ownerToken: z.string().min(1).max(200),
 });
 
 export const deleteKitAsset = createServerFn({ method: "POST" })
@@ -41,7 +41,7 @@ export const deleteKitAsset = createServerFn({ method: "POST" })
 const DeleteColorSchema = z.object({
   kitId: z.string().uuid(),
   colorId: z.string().uuid(),
-  ownerToken: z.string().min(1).max(200).optional(),
+  ownerToken: z.string().min(1).max(200),
 });
 
 export const deleteKitColor = createServerFn({ method: "POST" })
@@ -60,7 +60,7 @@ export const deleteKitColor = createServerFn({ method: "POST" })
 const UpdateColorSchema = z.object({
   kitId: z.string().uuid(),
   colorId: z.string().uuid(),
-  ownerToken: z.string().min(1).max(200).optional(),
+  ownerToken: z.string().min(1).max(200),
   hex: z.string().regex(HEX).optional(),
   role: z.string().min(1).max(40).optional(),
   name: z.string().min(1).max(80).nullable().optional(),

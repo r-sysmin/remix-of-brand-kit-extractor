@@ -3,13 +3,12 @@ import { z } from "zod";
 import { getAdmin } from "@/server/supabase-admin.server";
 import { assertKitOwner } from "@/server/kit-auth.server";
 
-// Toggle public sharing for a kit. Owner-only, where "owner" comes from the
-// verified session — never from request input.
+// Toggle public sharing only after the private browser ownership key matches.
 export const setKitShare = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       kitId: z.string().uuid(),
-      ownerToken: z.string().min(1).max(200).optional(),
+      ownerToken: z.string().min(1).max(200),
       isPublic: z.boolean(),
     }).parse,
   )
@@ -31,8 +30,3 @@ export const setKitShare = createServerFn({ method: "POST" })
     return updated as { share_token: string | null; is_public: boolean };
   });
 
-// NOTE: a `claimKit` server function used to live here. It reassigned a kit's
-// owner to any client-supplied user id, gated only on knowing the row's
-// anon_token — a spoofable, self-attested identity claim. It was unused by the
-// UI and has been removed. If kit claiming is reintroduced, derive the user id
-// from a verified session (requireSupabaseAuth), never from request input.

@@ -216,7 +216,7 @@ export const generateLogoVariants = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const admin = getAdmin();
 
-    // Owner-only: this spends AI credits, so gate on the verified session.
+    // Owner-only: this spends AI credits, so verify the private browser key.
     await assertKitOwner(data.kitId, data.ownerToken);
 
 
