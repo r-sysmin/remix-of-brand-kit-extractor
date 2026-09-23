@@ -145,7 +145,7 @@ export const duplicateKit = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const admin = getAdmin();
     const src = await assertKitOwner(data.kitId, data.ownerToken);
-    const { id: _omitId, created_at: _ca, updated_at: _ua, share_token: _st, ...rest } = src as any;
+    const { id: _omitId, created_at: _ca, updated_at: _ua, share_token: _st, owner_token_hash: _oh, ...rest } = src as any;
     const insertRow = {
       ...rest,
       name: `${src.name ?? "Untitled"} (copy)`,

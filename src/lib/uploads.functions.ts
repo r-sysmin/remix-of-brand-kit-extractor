@@ -62,7 +62,7 @@ export const uploadBrandSource = createServerFn({ method: "POST" })
     }
     return { kitId, ownerToken, files };
   })
-  .handler(async ({ data, context }): Promise<UploadResult> => {
+  .handler(async ({ data }): Promise<UploadResult> => {
     const admin = getAdmin();
 
     // Owner-only: compare a one-way hash of the browser key before uploading.

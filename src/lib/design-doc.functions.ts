@@ -107,8 +107,9 @@ export const diffDesignVersions = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!rows || rows.length < 2) throw new Error("Both versions are required");
     rows.forEach((row) => assertDesignOwnerHash(row.owner_token_hash, data.ownerToken));
-    const a = rows.find((r) => r.id === data.aId)!;
-    const b = rows.find((r) => r.id === data.bId)!;
+    const a = rows.find((r) => r.id === data.aId);
+    const b = rows.find((r) => r.id === data.bId);
+    if (!a || !b) throw new Error("Both versions are required");
     const parsedA =
       a.parsed && Object.keys(a.parsed as object).length > 0
         ? (a.parsed as ParsedDesignDoc)

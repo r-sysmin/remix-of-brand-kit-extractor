@@ -1044,6 +1044,7 @@ export async function extractKitImpl(data: ExtractKitInput) {
 // Generate sample brand-voice copy on demand
 export const GenerateSampleCopyInputSchema = z.object({
   kitId: z.string().uuid(),
+  ownerToken: z.string().min(1).max(200),
   kind: z.enum(["headline", "cta", "slide_title", "email_intro", "social_post"]),
   topic: z.string().min(1).max(300),
 });
@@ -1097,7 +1098,6 @@ export type HarvestMoreAssetsInput = z.infer<typeof HarvestMoreAssetsInputSchema
 export async function harvestMoreAssetsImpl(data: HarvestMoreAssetsInput) {
     const admin = getAdmin();
 
-    void data.ownerToken;
     const { data: kit, error: kitErr } = await admin
       .from("brand_kits")
       .select("id, source_url")
