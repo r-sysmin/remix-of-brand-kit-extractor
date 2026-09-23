@@ -46,7 +46,7 @@ import { BrandBuilderSection } from "@/components/brand-builder";
 
 const PENDING_EXTRACTION_PREFIX = "branddna.pendingExtraction:";
 
-export const Route = createFileRoute("/_authenticated/kit/$kitId")({
+export const Route = createFileRoute("/kit/$kitId")({
   head: ({ params }) => ({
     meta: [
       { title: "Brand kit — Brand DNA" },

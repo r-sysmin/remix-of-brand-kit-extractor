@@ -16,7 +16,7 @@ import {
 } from "@/lib/kits.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/library")({
+export const Route = createFileRoute("/library")({
   head: () => ({
     meta: [
       { title: "Library — Brand DNA" },

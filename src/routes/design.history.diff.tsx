@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { getAnonToken } from "@/lib/anon";
 import { z } from "zod";
 import { SiteHeader } from "@/components/site-header";
 import { diffDesignVersions } from "@/lib/design-doc.functions";
@@ -15,7 +16,7 @@ const searchSchema = z.object({
   b: z.string().uuid(),
 });
 
-export const Route = createFileRoute("/_authenticated/design/history/diff")({
+export const Route = createFileRoute("/design/history/diff")({
   validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [
@@ -37,6 +38,7 @@ type DiffResult = {
 };
 
 function DiffPage() {
+  const ownerToken = getAnonToken();
   const { a, b } = Route.useSearch();
   const run = useServerFn(diffDesignVersions);
   const [data, setData] = useState<DiffResult | null>(null);
@@ -44,10 +46,10 @@ function DiffPage() {
   const [showUnchanged, setShowUnchanged] = useState(false);
 
   useEffect(() => {
-    run({ data: { aId: a, bId: b } })
+    run({ data: { aId: a, bId: b, ownerToken } })
       .then((res) => setData(res as DiffResult))
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to diff"));
-  }, [a, b, run]);
+  }, [a, b, run, ownerToken]);
 
   const summary = data ? summarizeDiff(data.diff) : null;
 
