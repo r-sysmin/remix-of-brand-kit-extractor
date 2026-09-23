@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // ---------- Types shared with the UI ----------
 
@@ -41,13 +40,12 @@ const strArr = { type: "array", items: str } as const;
 // ---------- 1. Analyze what the kit already knows ----------
 
 export const analyzeKitForBuilder = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ kitId: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
+  .inputValidator((d) => z.object({ kitId: z.string().uuid(), ownerToken: z.string().min(1).max(200) }).parse(d))
+  .handler(async ({ data }) => {
     const { assertKitOwner } = await import("@/server/kit-auth.server");
     const { getAdmin } = await import("@/server/supabase-admin.server");
     const { aiJSON } = await import("@/server/brand-builder.server");
-    const kit = await assertKitOwner(data.kitId, context.userId);
+    const kit = await assertKitOwner(data.kitId, data.ownerToken);
     const admin = getAdmin();
     const [colors, fonts, voice] = await Promise.all([
       admin.from("kit_colors").select("hex").eq("kit_id", data.kitId),
@@ -109,12 +107,11 @@ const ProfileSchema = z.object({
 });
 
 export const buildBrandDirections = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ kitId: z.string().uuid(), profile: ProfileSchema }).parse(d))
-  .handler(async ({ data, context }) => {
+  .inputValidator((d) => z.object({ kitId: z.string().uuid(), ownerToken: z.string().min(1).max(200), profile: ProfileSchema }).parse(d))
+  .handler(async ({ data }) => {
     const { assertKitOwner } = await import("@/server/kit-auth.server");
     const { aiJSON, localSearch } = await import("@/server/brand-builder.server");
-    const kit = await assertKitOwner(data.kitId, context.userId);
+    const kit = await assertKitOwner(data.kitId, data.ownerToken);
     const p = data.profile;
 
     const [rivals, culture, trends] = await Promise.all([
@@ -226,14 +223,13 @@ const DirectionSchema = z.object({
 });
 
 export const applyBrandDirection = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ kitId: z.string().uuid(), direction: DirectionSchema, location: z.string().max(200) }).parse(d),
+    z.object({ kitId: z.string().uuid(), ownerToken: z.string().min(1).max(200), direction: DirectionSchema, location: z.string().max(200) }).parse(d),
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const { assertKitOwner } = await import("@/server/kit-auth.server");
     const { getAdmin } = await import("@/server/supabase-admin.server");
-    const kit = await assertKitOwner(data.kitId, context.userId);
+    const kit = await assertKitOwner(data.kitId, data.ownerToken);
     const admin = getAdmin();
     const d = data.direction;
 
