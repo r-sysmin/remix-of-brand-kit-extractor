@@ -27,6 +27,7 @@ export type Database = {
           is_public: boolean
           motion_style: Json | null
           name: string
+          owner_token_hash: string | null
           share_token: string | null
           source_type: string
           source_url: string | null
@@ -47,6 +48,7 @@ export type Database = {
           is_public?: boolean
           motion_style?: Json | null
           name?: string
+          owner_token_hash?: string | null
           share_token?: string | null
           source_type?: string
           source_url?: string | null
@@ -67,6 +69,7 @@ export type Database = {
           is_public?: boolean
           motion_style?: Json | null
           name?: string
+          owner_token_hash?: string | null
           share_token?: string | null
           source_type?: string
           source_url?: string | null
@@ -84,6 +87,7 @@ export type Database = {
           id: string
           label: string | null
           markdown: string
+          owner_token_hash: string | null
           parsed: Json
           version: number
         }
@@ -93,6 +97,7 @@ export type Database = {
           id?: string
           label?: string | null
           markdown: string
+          owner_token_hash?: string | null
           parsed?: Json
           version: number
         }
@@ -102,6 +107,7 @@ export type Database = {
           id?: string
           label?: string | null
           markdown?: string
+          owner_token_hash?: string | null
           parsed?: Json
           version?: number
         }
