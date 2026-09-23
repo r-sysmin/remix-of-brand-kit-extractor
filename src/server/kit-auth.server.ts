@@ -1,6 +1,5 @@
-// Ownership gate for brand kits. Every kit server function runs through here
-// with the user id taken from a verified Supabase session (never from request
-// input), so a caller can only touch kits their own account owns.
+// Ownership gate for browser-owned brand kits. The usable key remains in the
+// browser; only its one-way hash is stored with the kit.
 import { createHash, timingSafeEqual } from "node:crypto";
 import { getAdmin } from "@/server/supabase-admin.server";
 

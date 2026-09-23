@@ -11,13 +11,11 @@ export const warmServer = createServerFn({ method: "GET" }).handler(async () => 
   return { ok: true, t: Date.now() };
 });
 
-// Create a kit row owned by the signed-in user. Ownership comes from the
-// verified session, never from request input.
+// Create a kit row owned by this browser's unguessable local key.
 export const createKit = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       ownerToken: z.string().min(1).max(200),
-      isAuthed: z.boolean().optional(),
       sourceType: z.enum(["url", "upload", "manual", "mixed"]),
       sourceUrl: z.string().url().optional(),
       name: z.string().max(120).optional(),
