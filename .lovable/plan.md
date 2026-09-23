@@ -1,41 +1,30 @@
-## Plan
-
-Add a small readiness state to the homepage extraction panel so the sandbox does not accept extraction until the client and server-function layer are actually ready.
+# Remove sign-in and keep browser-owned kits
 
 ## What will change
 
-1. **Gate the extract control**
-   - Replace the active extract button with `INITIALIZING · PLEASE WAIT` until readiness is confirmed.
-   - Keep the URL/file inputs visible, but disable submit while initializing.
-   - If the user clicks/presses submit early, show a direct message instead of trying a server call.
+1. **Remove account gates**
+   - Move the Library, kit workspace, Brand Builder, Start Here, and design pages out of the signed-in-only section.
+   - Remove the sign-in page, account provider, session redirects, and sign-in prompts.
 
-2. **Use a real readiness probe**
-   - Call the existing lightweight `warmServer` server function from `kits.functions.ts` after hydration.
-   - Mark the panel ready only after that call succeeds.
-   - Add a short retry loop for sandbox cold starts rather than failing immediately.
+2. **Preserve private-by-link ownership**
+   - Restore a random browser ownership key for each visitor.
+   - Store a one-way hash of that key with each kit; never store or return the usable key.
+   - Require the matching key for opening, editing, duplicating, deleting, sharing, uploading, extracting, generating copy, creating logo variants, and using Brand Builder.
+   - List only kits created in that browser, including older browser keys already retained locally.
 
-3. **Make readiness visible and honest**
-   - Show a compact status line under the input while initializing.
-   - Remove any implication that extraction is ready before the server function round-trip succeeds.
+3. **Keep public sharing separate**
+   - Shared links remain readable only through their dedicated share address.
+   - A share link will not grant editing rights.
 
-4. **Decouple readiness from recent kits**
-   - Recent kits showing up is currently just an accidental signal that client-side code has hydrated/cache loaded.
-   - The extraction panel should own its own readiness check instead of relying on the recent kits section.
+4. **Handle features that previously belonged to an account**
+   - Keep design-history snapshots browser-owned using the same hashed key.
+   - Agent integrations will remain authenticated because browser storage cannot securely identify an external agent; removing their authentication would expose private kits.
 
-5. **Verify in preview**
-   - Load `/` in the Lovable sandbox.
-   - Confirm the button starts as initializing.
-   - Confirm it switches to extract after the warm server call.
-   - Submit a URL immediately after it becomes ready and verify the create + extract server requests run from the sandbox.
+5. **Update storage permissions and verify**
+   - Update the database schema and access rules for anonymous browser ownership.
+   - Confirm creation, extraction, reopening, editing, library listing, Brand Builder, and sharing work without signing in.
+   - Verify the app on mobile and desktop and check the latest build status.
 
-## Technical details
+## Important limitation
 
-- Update `src/components/ingestion-panel.tsx` only unless verification exposes a separate import/cache issue.
-- Import `warmServer` and call it through `useServerFn` inside `useEffect`.
-- Track readiness as `"initializing" | "ready" | "error"`.
-- Disable the submit button when `busy || readiness !== "ready"`.
-- Keep current behavior of staying on the homepage during extraction and navigating only after success.
-
-## Honest limitation
-
-This will not make Lovable sandbox infrastructure instantly ready. It will prevent users from submitting during the fragile startup window, which is the reliable fix for the preview-only behavior you’re seeing.
+Kits will belong to the browser that created them. Clearing site data or switching devices will lose access unless the kit was shared first; there is no account recovery after sign-in is removed.
