@@ -1088,6 +1088,7 @@ export async function buildKitZip(args: {
   voice: Voice;
   fontFiles?: FontFileBlob[];
   assetFiles?: AssetFileBlob[];
+  buildOut?: { market: any; directions: any[]; savedAt?: string | null; chosen?: number | null };
 }): Promise<Blob> {
   const zip = new JSZip();
   const base = slug(args.name);
@@ -1098,6 +1099,16 @@ export async function buildKitZip(args: {
   zip.file(`${base}-voice.md`, buildVoiceMarkdown(args.name, args.voice));
   zip.file(`${base}-DESIGN.md`, buildDesignMarkdown(args));
   zip.file(`${base}-brand-guide.pdf`, await buildBrandPDF(args));
+
+  if (args.buildOut) {
+    const bo = zip.folder("brand-build-out");
+    if (bo) {
+      bo.file("build-out.json", JSON.stringify(args.buildOut, null, 2));
+      bo.file("RESEARCH.md", buildResearchMarkdown(args.name, args.buildOut.market, args.buildOut.savedAt));
+      bo.file("DIRECTIONS.md", buildDirectionsMarkdown(args.name, args.buildOut.directions, args.buildOut.chosen));
+    }
+  }
+
 
   // FONTS.md — always include if there are fonts; explains licensing.
   if (args.fonts.length) {
@@ -1158,6 +1169,50 @@ export async function buildKitZip(args: {
   }
 
   return zip.generateAsync({ type: "blob" });
+}
+
+function buildResearchMarkdown(name: string, m: any, savedAt?: string | null): string {
+  const L: string[] = [`# ${name} — Local market research`, ""];
+  if (savedAt) L.push(`_Researched ${new Date(savedAt).toLocaleString()}_`, "");
+  if (m?.summary) L.push(String(m.summary), "");
+  for (const [k, v] of Object.entries(m ?? {})) {
+    if (k === "summary" || k === "competitors" || k === "sources") continue;
+    if (Array.isArray(v) && v.length) L.push(`## ${k}`, ...v.map((x) => `- ${typeof x === "string" ? x : JSON.stringify(x)}`), "");
+    else if (typeof v === "string" && v) L.push(`## ${k}`, v, "");
+  }
+  if (m?.competitors?.length) {
+    L.push("## Competitors");
+    for (const c of m.competitors) L.push(`- **${c.name}**${c.url ? ` (${c.url})` : ""} — ${c.note ?? ""}`);
+    L.push("");
+  }
+  if (m?.sources?.length) {
+    L.push("## Sources", ...m.sources.map((s: any) => `- [${s.title}](${s.url})`), "");
+  }
+  return L.join("\n");
+}
+
+function buildDirectionsMarkdown(name: string, dirs: any[], chosen?: number | null): string {
+  const L: string[] = [`# ${name} — Brand directions`, ""];
+  dirs.forEach((d, i) => {
+    L.push(`## ${i + 1}. ${d.name}${chosen === i ? " (chosen)" : ""}`, "", d.concept ?? "", "");
+    const rows: Array<[string, any]> = [
+      ["Positioning", d.positioning],
+      ["Audience", d.targetAudience],
+      ["Competitor gap", d.competitorGap],
+      ["Type", d.headingFont && `${d.headingFont} / ${d.bodyFont}`],
+      ["Logo direction", d.logoDirection],
+      ["Tone", d.tone?.join(", ")],
+      ["Local cues", d.localCues?.join(" · ")],
+    ];
+    for (const [k, v] of rows) if (v) L.push(`- **${k}:** ${v}`);
+    if (d.palette?.length) {
+      L.push("", "**Palette**", ...d.palette.map((c: any) => `- ${c.name} \`${c.hex}\` — ${c.role}`));
+    }
+    if (d.taglines?.length) L.push("", "**Taglines**", ...d.taglines.map((t: string) => `- “${t}”`));
+    if (d.sampleCopy) L.push("", "**Sample copy**", "", `> ${d.sampleCopy}`);
+    L.push("", "---", "");
+  });
+  return L.join("\n");
 }
 
 function base64ToUint8(b64: string): Uint8Array {

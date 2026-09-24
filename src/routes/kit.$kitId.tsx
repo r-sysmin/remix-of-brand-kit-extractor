@@ -612,7 +612,16 @@ function QuickDownloads(props: {
   const [busy, setBusy] = useState<null | "zip" | "pdf" | "md">(null);
   const fetchAssets = useServerFn(fetchAssetFiles);
 
-  async function downloadZip() {
+  useEffect(() => {
+    const onPkg = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d) void downloadZip(d);
+    };
+    window.addEventListener("branddna:download-package", onPkg);
+    return () => window.removeEventListener("branddna:download-package", onPkg);
+  });
+
+  async function downloadZip(buildOut?: any) {
     setBusy("zip");
     try {
       toast.message("Building bundle…");
@@ -659,8 +668,9 @@ function QuickDownloads(props: {
         ...props,
         fontFiles,
         assetFiles,
+        buildOut: buildOut && buildOut.directions ? buildOut : undefined,
       });
-      downloadBlob(blob, `${base}-brand-kit.zip`);
+      downloadBlob(blob, `${base}-${buildOut?.directions ? "brand-package" : "brand-kit"}.zip`);
     } finally {
       setBusy(null);
     }
