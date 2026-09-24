@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, MapPin, Sparkles, Check } from "lucide-react";
+import { Loader2, MapPin, Sparkles, Check, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,6 +175,23 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
 
       {phase === "done" && market && (
         <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[color:var(--border-subtle)] p-4">
+            <p className="text-sm text-muted-foreground">
+              Save everything — assets, tokens, voice, research and directions — as one brand package.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent("branddna:download-package", {
+                    detail: { market, directions, savedAt, chosen: applied },
+                  }),
+                )
+              }
+            >
+              <Package className="mr-2 h-4 w-4" /> Save brand package
+            </Button>
+          </div>
           <div className="rounded-2xl border border-[color:var(--border-subtle)] p-5 sm:p-6">
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
               // LOCAL MARKET{savedAt ? ` · SAVED ${new Date(savedAt).toLocaleString()}` : ""}
