@@ -32,6 +32,19 @@ export async function assertKitOwner(kitId: string, ownerToken: string) {
   // endpoint cannot be used to probe which kit ids exist.
   if (error || !kit) throw new KitAccessError();
   const ownerHash = (kit as { owner_token_hash: string | null }).owner_token_hash;
+  if (!ownerHash) {
+    // Legacy kit made before browser keys existed: the first browser to open
+    // it (by its unguessable id) becomes its owner. Conditional update avoids races.
+    const { data: claimed } = await admin
+      .from("brand_kits")
+      .update({ owner_token_hash: suppliedHash })
+      .eq("id", kitId)
+      .is("owner_token_hash", null)
+      .select("id")
+      .maybeSingle();
+    if (!claimed) throw new KitAccessError();
+    return { ...kit, owner_token_hash: suppliedHash } as Record<string, any>;
+  }
   if (!hashesMatch(ownerHash, suppliedHash)) throw new KitAccessError();
   return kit as Record<string, any>;
 }
