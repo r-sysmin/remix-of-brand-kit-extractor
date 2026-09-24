@@ -41,6 +41,8 @@ export const Route = createFileRoute("/keywords")({
     ],
     links: [{ rel: "canonical", href: "/keywords" }],
   }),
+  validateSearch: (s: Record<string, unknown>): { q?: string } =>
+    typeof s["q"] === "string" && s["q"] ? { q: String(s["q"]).slice(0, 1200) } : {},
   component: KeywordsPage,
 });
 
@@ -350,9 +352,10 @@ function KeywordsPage() {
   const dashboardFn = useServerFn(keywordDashboard);
   const researchFn = useServerFn(researchKeyword);
 
+  const { q } = Route.useSearch();
   const [database, setDatabase] = useState("us");
   const [raw, setRaw] = useState(
-    "brand style guide | guides\nbrand guidelines template | guides\nlogo color palette | tools",
+    q || "brand style guide | guides\nbrand guidelines template | guides\nlogo color palette | tools",
   );
   const [sortKey, setSortKey] = useState<SortKey>("volume");
   const [sortDir, setSortDir] = useState<SortDir>("desc");

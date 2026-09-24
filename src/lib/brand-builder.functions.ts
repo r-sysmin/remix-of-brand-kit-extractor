@@ -102,7 +102,17 @@ export const analyzeKitForBuilder = createServerFn({ method: "POST" })
       missing: saved?.profile ? [] : missing,
       thin,
       stats: { colorCount, fontCount, hasVoice },
-      saved: saved ? { market: saved.market, directions: saved.directions, savedAt: saved.savedAt ?? null } : null,
+      saved: saved
+        ? {
+            market: saved.market,
+            directions: saved.directions,
+            savedAt: saved.savedAt ?? null,
+            keywords: ((saved as any).keywords ?? null) as import("@/server/growth-plan.server").KeywordSet | null,
+            edge: ((saved as any).edge ?? null) as import("@/server/growth-plan.server").CompetitorEdge | null,
+            plan: ((saved as any).plan ?? null) as import("@/server/growth-plan.server").MarketingPlan | null,
+            growthDirection: ((saved as any).growthDirection ?? 0) as number,
+          }
+        : null,
     };
   });
 
@@ -209,7 +219,7 @@ export const buildBrandDirections = createServerFn({ method: "POST" })
     };
     const directions = result.directions.slice(0, 3);
     const { getAdmin } = await import("@/server/supabase-admin.server");
-    const saved = { market, directions, profile: p, savedAt: new Date().toISOString() };
+    const saved = { market, directions, profile: p, savedAt: new Date().toISOString(), keywords: null, edge: null, plan: null };
     await (getAdmin().from("brand_kits") as any).update({ brand_build: saved }).eq("id", data.kitId);
     return { market, directions, savedAt: saved.savedAt };
   });
@@ -311,4 +321,42 @@ export const applyBrandDirection = createServerFn({ method: "POST" })
       .eq("id", data.kitId);
 
     return { addedColors: newColors.length, addedFonts: newFonts.length };
+  });
+
+// ---------- 4. Growth stages: keywords -> competitor edge -> marketing plan ----------
+
+export type { GrowthKeyword, KeywordSet, CompetitorEdge, MarketingPlan } from "@/server/growth-plan.server";
+
+export const buildGrowthStage = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        kitId: z.string().uuid(),
+        ownerToken: z.string().min(1).max(200),
+        stage: z.enum(["keywords", "edge", "plan"]),
+        directionIndex: z.number().int().min(0).max(2).default(0),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { assertKitOwner } = await import("@/server/kit-auth.server");
+    const { getAdmin } = await import("@/server/supabase-admin.server");
+    const g = await import("@/server/growth-plan.server");
+    const kit = await assertKitOwner(data.kitId, data.ownerToken);
+    const saved = ((kit as any).brand_build ?? null) as any;
+    if (!saved?.directions?.length || !saved.profile) throw new Error("Build out the brand first.");
+    const direction = saved.directions[data.directionIndex] ?? saved.directions[0];
+    const ctx = { profile: saved.profile, market: saved.market, direction, siteUrl: kit.source_url ?? null };
+
+    let patch: Record<string, unknown>;
+    if (data.stage === "keywords") patch = { keywords: await g.buildKeywordSet(ctx) };
+    else if (data.stage === "edge") patch = { edge: await g.buildCompetitorEdgeFor(ctx, saved.keywords ?? null) };
+    else patch = { plan: await g.buildMarketingPlanFor(ctx, saved.keywords ?? null, saved.edge ?? null) };
+
+    // Re-read so parallel writes don't clobber each other.
+    const admin = getAdmin();
+    const { data: fresh } = await (admin.from("brand_kits") as any).select("brand_build").eq("id", data.kitId).maybeSingle();
+    const next = { ...(fresh?.brand_build ?? saved), ...patch, growthDirection: data.directionIndex, savedAt: new Date().toISOString() };
+    await (admin.from("brand_kits") as any).update({ brand_build: next }).eq("id", data.kitId);
+    return patch as { keywords?: import("@/server/growth-plan.server").KeywordSet; edge?: import("@/server/growth-plan.server").CompetitorEdge; plan?: import("@/server/growth-plan.server").MarketingPlan };
   });
