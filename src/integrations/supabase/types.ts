@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       brand_kits: {
         Row: {
+          brand_build: Json | null
           brand_positioning: Json | null
           created_at: string
           error_code: string | null
@@ -37,6 +38,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          brand_build?: Json | null
           brand_positioning?: Json | null
           created_at?: string
           error_code?: string | null
@@ -58,6 +60,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          brand_build?: Json | null
           brand_positioning?: Json | null
           created_at?: string
           error_code?: string | null

@@ -37,6 +37,7 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
   const [directions, setDirections] = useState<BrandDirection[]>([]);
   const [applying, setApplying] = useState<number | null>(null);
   const [applied, setApplied] = useState<number | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -46,7 +47,12 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
         setProfile(r.profile);
         setMissing(r.missing.filter((k) => k !== "audience" && k !== "businessName"));
         setThin(r.thin);
-        setPhase("ready");
+        if (r.saved?.directions?.length) {
+          setMarket(r.saved.market);
+          setDirections(r.saved.directions);
+          setSavedAt(r.saved.savedAt);
+          setPhase("done");
+        } else setPhase("ready");
       })
       .catch((e) => {
         if (!alive) return;
@@ -68,7 +74,9 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
       const r = await build({ data: { kitId, ownerToken, profile } });
       setMarket(r.market);
       setDirections(r.directions);
+      setSavedAt(r.savedAt);
       setPhase("done");
+      toast.success("Build-out saved to this kit");
     } catch (e: any) {
       setError(e?.message ?? "Building failed.");
       setPhase("ready");
@@ -168,7 +176,9 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
       {phase === "done" && market && (
         <div className="space-y-6">
           <div className="rounded-2xl border border-[color:var(--border-subtle)] p-5 sm:p-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">// LOCAL MARKET</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              // LOCAL MARKET{savedAt ? ` · SAVED ${new Date(savedAt).toLocaleString()}` : ""}
+            </p>
             <p className="mt-2 text-sm leading-relaxed">{market.summary}</p>
             {market.competitors.length > 0 && (
               <ul className="mt-4 space-y-2 text-sm">
