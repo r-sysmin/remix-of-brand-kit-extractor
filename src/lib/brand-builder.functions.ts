@@ -94,7 +94,16 @@ export const analyzeKitForBuilder = createServerFn({ method: "POST" })
     const missing = (Object.keys(profile) as Array<keyof BrandProfile>).filter(
       (k) => !profile[k]?.trim(),
     );
-    return { profile, missing, thin, stats: { colorCount, fontCount, hasVoice } };
+    const saved = ((kit as any).brand_build ?? null) as
+      | { market: MarketReport; directions: BrandDirection[]; profile?: BrandProfile; savedAt?: string }
+      | null;
+    return {
+      profile: saved?.profile ? { ...profile, ...saved.profile } : profile,
+      missing: saved?.profile ? [] : missing,
+      thin,
+      stats: { colorCount, fontCount, hasVoice },
+      saved: saved ? { market: saved.market, directions: saved.directions, savedAt: saved.savedAt ?? null } : null,
+    };
   });
 
 // ---------- 2. Research the local market and build directions ----------
@@ -198,7 +207,11 @@ export const buildBrandDirections = createServerFn({ method: "POST" })
       ...result.market,
       sources: all.filter((r) => r.url).map((r) => ({ title: r.title || r.url, url: r.url })),
     };
-    return { market, directions: result.directions.slice(0, 3) };
+    const directions = result.directions.slice(0, 3);
+    const { getAdmin } = await import("@/server/supabase-admin.server");
+    const saved = { market, directions, profile: p, savedAt: new Date().toISOString() };
+    await (getAdmin().from("brand_kits") as any).update({ brand_build: saved }).eq("id", data.kitId);
+    return { market, directions, savedAt: saved.savedAt };
   });
 
 // ---------- 3. Apply a chosen direction to the kit ----------
