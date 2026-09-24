@@ -1088,7 +1088,7 @@ export async function buildKitZip(args: {
   voice: Voice;
   fontFiles?: FontFileBlob[];
   assetFiles?: AssetFileBlob[];
-  buildOut?: { market: any; directions: any[]; savedAt?: string | null; chosen?: number | null };
+  buildOut?: { market: any; directions: any[]; savedAt?: string | null; chosen?: number | null; keywords?: any; edge?: any; plan?: any };
 }): Promise<Blob> {
   const zip = new JSZip();
   const base = slug(args.name);
@@ -1106,6 +1106,9 @@ export async function buildKitZip(args: {
       bo.file("build-out.json", JSON.stringify(args.buildOut, null, 2));
       bo.file("RESEARCH.md", buildResearchMarkdown(args.name, args.buildOut.market, args.buildOut.savedAt));
       bo.file("DIRECTIONS.md", buildDirectionsMarkdown(args.name, args.buildOut.directions, args.buildOut.chosen));
+      if (args.buildOut.keywords?.keywords?.length) bo.file("KEYWORDS.csv", buildKeywordsCsv(args.buildOut.keywords));
+      if (args.buildOut.edge) bo.file("COMPETITOR-EDGE.md", buildEdgeMarkdown(args.name, args.buildOut.edge));
+      if (args.buildOut.plan) bo.file("MARKETING-PLAN.md", buildPlanMarkdown(args.name, args.buildOut.plan));
     }
   }
 
@@ -1169,6 +1172,33 @@ export async function buildKitZip(args: {
   }
 
   return zip.generateAsync({ type: "blob" });
+}
+
+function buildKeywordsCsv(kw: any): string {
+  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const head = "keyword,monthly_searches,difficulty,intent,trend,group,priority,local,estimated";
+  const rows = (kw.keywords as any[]).map((k) =>
+    [k.phrase, k.volume, k.difficulty, k.intent, k.trend, k.group, k.priority, k.local, k.estimated].map(esc).join(","),
+  );
+  return [head, ...rows].join("\n");
+}
+
+function mdList(items: string[] = []) {
+  return items.map((x) => `- ${x}`).join("\n");
+}
+
+function buildEdgeMarkdown(name: string, e: any): string {
+  const rivals = (e.rivals ?? [])
+    .map((r: any) => `- **${r.name}** (${r.domain})${r.sharedKeywords != null ? ` — ${r.sharedKeywords} shared keywords` : ""}${r.gapKeywords?.length ? `; they rank for: ${r.gapKeywords.join(", ")}` : ""}`)
+    .join("\n");
+  return `# ${name} — Competitor edge\n\n${e.note ? `_${e.note}_\n\n` : ""}## Rivals\n${rivals || "_None found_"}\n\n## Your advantages\n${mdList(e.advantages)}\n\n## Threats\n${mdList(e.threats)}\n\n## Winning moves\n${mdList(e.winningMoves)}\n`;
+}
+
+function buildPlanMarkdown(name: string, p: any): string {
+  const seo = (p.seo ?? []).map((s: any) => `### ${s.page}\n- Target: ${s.targetKeyword}\n- Title: ${s.title}\n- Description: ${s.metaDescription}\n- Why: ${s.why}`).join("\n\n");
+  const aeo = (p.aeo ?? []).map((a: any) => `**${a.question}**\n\n${a.answer}`).join("\n\n");
+  const geo = (p.geo ?? []).map((g: any) => `- **${g.action}** — ${g.detail}`).join("\n");
+  return `# ${name} — Marketing plan\n\n${p.headline}\n\n## Do this week\n${mdList(p.firstActions)}\n\n## SEO — pages\n\n${seo}\n\n## AEO — answers\n\n${aeo}\n\n## GEO — local & AI search\n${geo}\n\n## Roadmap\n### First 30 days\n${mdList(p.roadmap?.days30)}\n\n### Days 31–60\n${mdList(p.roadmap?.days60)}\n\n### Days 61–90\n${mdList(p.roadmap?.days90)}\n`;
 }
 
 function buildResearchMarkdown(name: string, m: any, savedAt?: string | null): string {

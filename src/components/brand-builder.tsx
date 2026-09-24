@@ -13,6 +13,7 @@ import {
   type BrandProfile,
   type MarketReport,
 } from "@/lib/brand-builder.functions";
+import { GrowthPlan, type Growth } from "@/components/growth-plan";
 
 const FIELD_LABELS: Record<keyof BrandProfile, { label: string; placeholder: string }> = {
   businessName: { label: "Business name", placeholder: "e.g. Lone Star Roasters" },
@@ -38,6 +39,10 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
   const [applying, setApplying] = useState<number | null>(null);
   const [applied, setApplied] = useState<number | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [growth, setGrowth] = useState<Growth>({ keywords: null, edge: null, plan: null });
+  const [growthDir, setGrowthDir] = useState(0);
+  const [autoGrowth, setAutoGrowth] = useState(false);
+  const [growthKey, setGrowthKey] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -51,6 +56,8 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
           setMarket(r.saved.market);
           setDirections(r.saved.directions);
           setSavedAt(r.saved.savedAt);
+          setGrowth({ keywords: r.saved.keywords, edge: r.saved.edge, plan: r.saved.plan });
+          setGrowthDir(r.saved.growthDirection ?? 0);
           setPhase("done");
         } else setPhase("ready");
       })
@@ -75,6 +82,10 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
       setMarket(r.market);
       setDirections(r.directions);
       setSavedAt(r.savedAt);
+      setGrowth({ keywords: null, edge: null, plan: null });
+      setGrowthDir(0);
+      setAutoGrowth(true);
+      setGrowthKey((k) => k + 1);
       setPhase("done");
       toast.success("Build-out saved to this kit");
     } catch (e: any) {
@@ -184,7 +195,7 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
               onClick={() =>
                 window.dispatchEvent(
                   new CustomEvent("branddna:download-package", {
-                    detail: { market, directions, savedAt, chosen: applied },
+                    detail: { market, directions, savedAt, chosen: applied, ...growth },
                   }),
                 )
               }
@@ -252,6 +263,16 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
               </article>
             ))}
           </div>
+
+          <GrowthPlan
+            key={growthKey}
+            kitId={kitId}
+            ownerToken={ownerToken}
+            directionIndex={applied ?? growthDir}
+            value={growth}
+            onChange={setGrowth}
+            autoRun={autoGrowth}
+          />
 
           {market.sources.length > 0 && (
             <details className="text-xs text-muted-foreground">
