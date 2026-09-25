@@ -1,7 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getAdmin } from "@/server/supabase-admin.server";
-import { KitAccessError, assertKitOwner, hashOwnerToken } from "@/server/kit-auth.server";
+import {
+  KitAccessError,
+  assertKitOwner,
+  getSessionUserId,
+  hashOwnerToken,
+} from "@/server/kit-auth.server";
 
 const STALE_PROCESSING_MS = 90 * 1000;
 
@@ -23,12 +28,13 @@ export const createKit = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const admin = getAdmin();
+    const sessionUserId = await getSessionUserId();
     const row: Record<string, any> = {
       name: data.name ?? "Untitled brand kit",
       source_type: data.sourceType,
       source_url: data.sourceUrl ?? null,
       status: "pending",
-      user_id: null,
+      user_id: sessionUserId,
       owner_token_hash: hashOwnerToken(data.ownerToken),
     };
 
@@ -149,13 +155,13 @@ export const duplicateKit = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const admin = getAdmin();
     const src = await assertKitOwner(data.kitId, data.ownerToken);
-    const { id: _omitId, created_at: _ca, updated_at: _ua, share_token: _st, owner_token_hash: _oh, ...rest } = src as any;
+    const { id: _omitId, created_at: _ca, updated_at: _ua, share_token: _st, owner_token_hash: _oh, user_id: _uid, ...rest } = src as any;
     const insertRow = {
       ...rest,
       name: `${src.name ?? "Untitled"} (copy)`,
       share_token: null,
       is_public: false,
-      user_id: null,
+      user_id: await getSessionUserId(),
       owner_token_hash: hashOwnerToken(data.ownerToken),
     };
     const { data: created, error } = await admin
@@ -198,10 +204,16 @@ export const listKitsByOwner = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const admin = getAdmin();
+    const sessionUserId = await getSessionUserId();
+    const ownerHash = hashOwnerToken(data.ownerToken);
     let query = admin
       .from("brand_kits")
       .select("id, name, source_url, status, created_at")
-      .eq("owner_token_hash", hashOwnerToken(data.ownerToken))
+      .or(
+        sessionUserId
+          ? `owner_token_hash.eq.${ownerHash},user_id.eq.${sessionUserId}`
+          : `owner_token_hash.eq.${ownerHash}`,
+      )
       .order("created_at", { ascending: false });
     if (data.limit) query = query.limit(data.limit);
     const { data: kitRows, error } = await query;
@@ -325,10 +337,16 @@ export const bulkDeleteKits = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const admin = getAdmin();
+    const sessionUserId = await getSessionUserId();
+    const ownerHash = hashOwnerToken(data.ownerToken);
     const { data: rows } = await admin
       .from("brand_kits")
       .select("id")
-      .eq("owner_token_hash", hashOwnerToken(data.ownerToken))
+      .or(
+        sessionUserId
+          ? `owner_token_hash.eq.${ownerHash},user_id.eq.${sessionUserId}`
+          : `owner_token_hash.eq.${ownerHash}`,
+      )
       .in("id", data.kitIds);
     const ownedIds = (rows ?? []).map((r: any) => r.id as string);
     if (ownedIds.length === 0) return { deleted: 0 };
