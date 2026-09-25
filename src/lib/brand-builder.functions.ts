@@ -234,7 +234,7 @@ const DirectionSchema = z.object({
   targetAudience: z.string().max(3000),
   competitorGap: z.string().max(3000),
   localCues: z.array(z.string().max(500)).max(20),
-  palette: z.array(z.object({ hex: z.string(), name: z.string().max(100), role: z.string().max(60) })).max(12),
+  palette: z.array(z.object({ hex: z.string(), name: z.string().max(100), role: z.string().max(300) })).max(12),
   headingFont: z.string().max(100),
   bodyFont: z.string().max(100),
   logoDirection: z.string().max(3000),
