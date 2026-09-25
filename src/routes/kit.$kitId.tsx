@@ -1540,6 +1540,23 @@ function AssetsSection({
   const [harvesting, setHarvesting] = useState(false);
   const removeAsset = useServerFn(deleteKitAsset);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const generateLogoFn = useServerFn(generateLogo);
+  const [genBusy, setGenBusy] = useState(false);
+  const [genStyle, setGenStyle] = useState<"combination" | "mark" | "wordmark">("combination");
+
+  async function handleGenerateLogo() {
+    if (genBusy) return;
+    setGenBusy(true);
+    try {
+      await generateLogoFn({ data: { kitId, ownerToken, style: genStyle } });
+      toast.success("Logo generated");
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Logo generation failed");
+    } finally {
+      setGenBusy(false);
+    }
+  }
 
   async function handleDelete(assetId: string, label: string) {
     if (deleting) return;
