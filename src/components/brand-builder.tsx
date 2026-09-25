@@ -211,7 +211,8 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
             {market.competitors.length > 0 && (
               <ul className="mt-4 space-y-2 text-sm">
                 {market.competitors.map((c, i) => (
-                  <li key={i}>
+                  <li key={i} className="flex items-center gap-2">
+                    <CompetitorLogo url={c.url} name={c.name} />
                     {c.url ? (
                       <a href={c.url} target="_blank" rel="noreferrer" className="font-medium hover:underline">
                         {c.name}
@@ -291,6 +292,29 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
         </div>
       )}
     </div>
+  );
+}
+
+const LOGO_DEV_KEY = import.meta.env.VITE_LOVABLE_CONNECTOR_LOGO_DEV_API_KEY as string | undefined;
+
+function CompetitorLogo({ url, name }: { url?: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!LOGO_DEV_KEY || !url || failed) return null;
+  let domain = "";
+  try {
+    domain = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+  if (!domain) return null;
+  return (
+    <img
+      src={`https://img.logo.dev/${domain}?token=${LOGO_DEV_KEY}&size=64&fallback=404`}
+      alt={`${name} logo`}
+      className="h-5 w-5 shrink-0 rounded-sm object-contain"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
   );
 }
 
