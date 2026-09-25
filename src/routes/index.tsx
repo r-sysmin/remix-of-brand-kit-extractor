@@ -3,6 +3,7 @@ import { BookOpen, Swords } from "lucide-react";
 import { IngestionPanel } from "@/components/ingestion-panel";
 import { RecentKits } from "@/components/recent-kits";
 import { StartHereButton } from "@/components/start-here-button";
+import { AuthButton } from "@/components/auth-button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -53,6 +54,7 @@ function Landing() {
             <Link to="/library">
               <BookOpen aria-hidden /> Library
             </Link>
+            <AuthButton />
           </div>
 
         </nav>

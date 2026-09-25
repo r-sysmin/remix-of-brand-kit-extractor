@@ -62,7 +62,7 @@ function ResetPasswordPage() {
     >
       <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 40 }}>
         Choose a new password.
-h1>
+      </h1>
       {!ready ? (
         <p style={{ fontStyle: "italic", color: "rgba(10,10,10,0.65)" }}>
           This reset link is invalid or has expired.{" "}
