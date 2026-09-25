@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getAdmin } from "@/server/supabase-admin.server";
-import { assertDesignOwnerHash, hashDesignOwnerToken } from "@/server/design-auth.server";
+import { hashDesignOwnerToken } from "@/server/design-auth.server";
+import { getSessionUserId } from "@/server/kit-auth.server";
 import {
   parseDesignDoc,
   diffDesignDocs,
@@ -16,13 +17,33 @@ export type DesignVersionListItem = {
   created_at: string;
 };
 
+// A design version is yours when its browser-key hash matches OR it belongs
+// to your signed-in account.
+function assertDesignAccess(
+  row: { owner_token_hash: string | null; created_by: string | null },
+  ownerToken: string,
+  sessionUserId: string | null,
+): void {
+  if (sessionUserId && row.created_by === sessionUserId) return;
+  if (row.owner_token_hash && row.owner_token_hash === hashDesignOwnerToken(ownerToken)) return;
+  throw new Error("Design history not found");
+}
+
+function ownerFilter(ownerToken: string, sessionUserId: string | null): string {
+  const hash = hashDesignOwnerToken(ownerToken);
+  return sessionUserId
+    ? `owner_token_hash.eq.${hash},created_by.eq.${sessionUserId}`
+    : `owner_token_hash.eq.${hash}`;
+}
+
 export const listDesignVersions = createServerFn({ method: "GET" })
   .inputValidator(z.object({ ownerToken: z.string().min(1).max(200) }).parse)
   .handler(async ({ data }) => {
+    const sessionUserId = await getSessionUserId();
     const { data: rows, error } = await getAdmin()
       .from("design_doc_versions")
       .select("id, version, label, created_at")
-      .eq("owner_token_hash", hashDesignOwnerToken(data.ownerToken))
+      .or(ownerFilter(data.ownerToken, sessionUserId))
       .order("version", { ascending: false });
     if (error) throw new Error(error.message);
     return { versions: (rows ?? []) as DesignVersionListItem[] };
@@ -31,13 +52,14 @@ export const listDesignVersions = createServerFn({ method: "GET" })
 export const getDesignVersion = createServerFn({ method: "POST" })
   .inputValidator(z.object({ id: z.string().uuid(), ownerToken: z.string().min(1).max(200) }).parse)
   .handler(async ({ data }) => {
+    const sessionUserId = await getSessionUserId();
     const { data: row, error } = await getAdmin()
       .from("design_doc_versions")
-      .select("id, version, label, markdown, parsed, created_at, owner_token_hash")
+      .select("id, version, label, markdown, parsed, created_at, owner_token_hash, created_by")
       .eq("id", data.id)
       .single();
     if (error || !row) throw new Error(error?.message ?? "Version not found");
-    assertDesignOwnerHash(row.owner_token_hash, data.ownerToken);
+    assertDesignAccess(row, data.ownerToken, sessionUserId);
     return row as {
       id: string;
       version: number;
@@ -58,13 +80,15 @@ export const saveDesignVersion = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const supabase = getAdmin();
+    const sessionUserId = await getSessionUserId();
     const parsed = parseDesignDoc(data.markdown);
+    const ownerHash = hashDesignOwnerToken(data.ownerToken);
 
-    // Find next version number.
+    // Find next version number across both ownership scopes.
     const { data: latest } = await supabase
       .from("design_doc_versions")
       .select("version")
-      .eq("owner_token_hash", hashDesignOwnerToken(data.ownerToken))
+      .or(ownerFilter(data.ownerToken, sessionUserId))
       .order("version", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -75,8 +99,8 @@ export const saveDesignVersion = createServerFn({ method: "POST" })
       label: data.label ?? null,
       markdown: data.markdown,
       parsed: parsed as unknown,
-      created_by: null,
-      owner_token_hash: hashDesignOwnerToken(data.ownerToken),
+      created_by: sessionUserId,
+      owner_token_hash: ownerHash,
     };
     const { data: row, error } = await (supabase
       .from("design_doc_versions") as any)
@@ -100,13 +124,14 @@ export const diffDesignVersions = createServerFn({ method: "POST" })
     b: { version: number; label: string | null; created_at: string };
     diff: DesignDocDiff;
   }> => {
+    const sessionUserId = await getSessionUserId();
     const { data: rows, error } = await getAdmin()
       .from("design_doc_versions")
-      .select("id, version, label, parsed, markdown, created_at, owner_token_hash")
+      .select("id, version, label, parsed, markdown, created_at, owner_token_hash, created_by")
       .in("id", [data.aId, data.bId]);
     if (error) throw new Error(error.message);
     if (!rows || rows.length < 2) throw new Error("Both versions are required");
-    rows.forEach((row) => assertDesignOwnerHash(row.owner_token_hash, data.ownerToken));
+    rows.forEach((row) => assertDesignAccess(row, data.ownerToken, sessionUserId));
     const a = rows.find((r) => r.id === data.aId);
     const b = rows.find((r) => r.id === data.bId);
     if (!a || !b) throw new Error("Both versions are required");

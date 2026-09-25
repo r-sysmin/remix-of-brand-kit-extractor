@@ -10,11 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StartHereRouteImport } from './routes/start-here'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as DesignRouteImport } from './routes/design'
 import { Route as CompetitorsRouteImport } from './routes/competitors'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShareShareTokenRouteImport } from './routes/share.$shareToken'
 import { Route as KitKitIdRouteImport } from './routes/kit.$kitId'
@@ -25,6 +27,11 @@ import { Route as DesignHistoryDiffRouteImport } from './routes/design.history.d
 const StartHereRoute = StartHereRouteImport.update({
   id: '/start-here',
   path: '/start-here',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpRoute = McpRouteImport.update({
@@ -50,6 +57,11 @@ const DesignRoute = DesignRouteImport.update({
 const CompetitorsRoute = CompetitorsRouteImport.update({
   id: '/competitors',
   path: '/competitors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -86,11 +98,13 @@ const DesignHistoryDiffRoute = DesignHistoryDiffRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/competitors': typeof CompetitorsRoute
   '/design': typeof DesignRouteWithChildren
   '/keywords': typeof KeywordsRoute
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/start-here': typeof StartHereRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/design/history': typeof DesignHistoryRouteWithChildren
@@ -100,11 +114,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/competitors': typeof CompetitorsRoute
   '/design': typeof DesignRouteWithChildren
   '/keywords': typeof KeywordsRoute
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/start-here': typeof StartHereRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/design/history': typeof DesignHistoryRouteWithChildren
@@ -115,11 +131,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/competitors': typeof CompetitorsRoute
   '/design': typeof DesignRouteWithChildren
   '/keywords': typeof KeywordsRoute
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/start-here': typeof StartHereRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/design/history': typeof DesignHistoryRouteWithChildren
@@ -131,11 +149,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/competitors'
     | '/design'
     | '/keywords'
     | '/library'
     | '/mcp'
+    | '/reset-password'
     | '/start-here'
     | '/.well-known/oauth-protected-resource'
     | '/design/history'
@@ -145,11 +165,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/competitors'
     | '/design'
     | '/keywords'
     | '/library'
     | '/mcp'
+    | '/reset-password'
     | '/start-here'
     | '/.well-known/oauth-protected-resource'
     | '/design/history'
@@ -159,11 +181,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/competitors'
     | '/design'
     | '/keywords'
     | '/library'
     | '/mcp'
+    | '/reset-password'
     | '/start-here'
     | '/.well-known/oauth-protected-resource'
     | '/design/history'
@@ -174,11 +198,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   CompetitorsRoute: typeof CompetitorsRoute
   DesignRoute: typeof DesignRouteWithChildren
   KeywordsRoute: typeof KeywordsRoute
   LibraryRoute: typeof LibraryRoute
   McpRoute: typeof McpRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   StartHereRoute: typeof StartHereRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   KitKitIdRoute: typeof KitKitIdRoute
@@ -192,6 +218,13 @@ declare module '@tanstack/react-router' {
       path: '/start-here'
       fullPath: '/start-here'
       preLoaderRoute: typeof StartHereRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp': {
@@ -227,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/competitors'
       fullPath: '/competitors'
       preLoaderRoute: typeof CompetitorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -299,11 +339,13 @@ const DesignRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   CompetitorsRoute: CompetitorsRoute,
   DesignRoute: DesignRouteWithChildren,
   KeywordsRoute: KeywordsRoute,
   LibraryRoute: LibraryRoute,
   McpRoute: McpRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   StartHereRoute: StartHereRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
