@@ -361,3 +361,27 @@ export const bulkDeleteKits = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { deleted: ownedIds.length };
   });
+
+// Link this browser's kits (and design history) to the signed-in account so
+// they follow the user across devices. Only touches rows that match this
+// browser's key and are not already linked to an account.
+export const claimMyKits = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ ownerToken: z.string().min(1).max(200) }).parse)
+  .handler(async ({ data }) => {
+    const sessionUserId = await getSessionUserId();
+    if (!sessionUserId) return { claimed: 0 };
+    const admin = getAdmin();
+    const ownerHash = hashOwnerToken(data.ownerToken);
+    const { data: kits } = await admin
+      .from("brand_kits")
+      .update({ user_id: sessionUserId })
+      .eq("owner_token_hash", ownerHash)
+      .is("user_id", null)
+      .select("id");
+    await admin
+      .from("design_doc_versions")
+      .update({ created_by: sessionUserId })
+      .eq("owner_token_hash", ownerHash)
+      .is("created_by", null);
+    return { claimed: (kits ?? []).length };
+  });
