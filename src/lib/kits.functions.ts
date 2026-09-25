@@ -57,7 +57,7 @@ export const getKit = createServerFn({ method: "POST" })
     try {
       k = await assertKitOwner(data.kitId, data.ownerToken);
     } catch (e) {
-      if (e instanceof KitAccessError) return { accessDenied: true as const } as any;
+      if (e instanceof KitAccessError) return { accessDenied: true as const, kit: null as any, colors: [] as any[], fonts: [] as any[], tokens: [] as any[], assets: [] as any[], voice: null as any } as never;
       throw e;
     }
 
