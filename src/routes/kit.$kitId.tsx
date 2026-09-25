@@ -92,6 +92,10 @@ function KitPage() {
       try {
         const res = await fetchKit({ data: { kitId, ownerToken } });
         if (cancelled) return;
+        if ((res as any)?.accessDenied) {
+          setErr("This kit was created in a different browser. Kits are private to the browser that made them, so open it there, or create a new kit here.");
+          return;
+        }
         setData(res);
         const kit = res.kit as any;
         if (kit.status === "pending" && !autoExtractionStarted.current) {
