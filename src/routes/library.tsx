@@ -15,6 +15,7 @@ import {
   listKitsByOwner,
 } from "@/lib/kits.functions";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -63,6 +64,7 @@ const mono = "font-mono text-[11px] uppercase tracking-[0.16em]";
 
 function LibraryPage() {
   const ownerToken = typeof window !== "undefined" ? getAnonToken() : "";
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const list = useServerFn(listKitsByOwner);
   const renameFn = useServerFn(renameKit);
@@ -79,7 +81,7 @@ function LibraryPage() {
   const [selectMode, setSelectMode] = useState(false);
 
   useEffect(() => {
-    if (!ownerToken) return;
+    if (!ownerToken || authLoading) return;
     // Hydrate from cache immediately so the page never flashes empty.
     const cached = readKitsCache();
     if (cached && cached.length > 0) {
@@ -106,7 +108,7 @@ function LibraryPage() {
         setBusy(false);
       }
     })();
-  }, [ownerToken, list]);
+  }, [ownerToken, list, authLoading, user?.id]);
 
   // Auto-import each kit's display font (Google + self-hosted via @font-face).
   useAutoImportFonts(
