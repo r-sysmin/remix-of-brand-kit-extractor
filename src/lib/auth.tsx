@@ -32,6 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       setSession(data.session);
       setLoading(false);
+      if (data.session) {
+        // SIGNED_IN is not emitted on every refresh. Claim here too so kits
+        // created before sign-in are linked even when the session is restored.
+        claimMyKits({ data: { ownerToken: getAnonToken() } }).catch(() => {});
+      }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
