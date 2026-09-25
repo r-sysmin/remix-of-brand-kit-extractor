@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getAdmin } from "@/server/supabase-admin.server";
-import { assertKitOwner, hashOwnerToken } from "@/server/kit-auth.server";
+import { KitAccessError, assertKitOwner, hashOwnerToken } from "@/server/kit-auth.server";
 
 const STALE_PROCESSING_MS = 90 * 1000;
 
@@ -53,7 +53,13 @@ export const getKit = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const admin = getAdmin();
-    let k = (await assertKitOwner(data.kitId, data.ownerToken)) as any;
+    let k: any;
+    try {
+      k = await assertKitOwner(data.kitId, data.ownerToken);
+    } catch (e) {
+      if (e instanceof KitAccessError) return { accessDenied: true as const } as any;
+      throw e;
+    }
 
     const updatedAt = k.updated_at ? Date.parse(k.updated_at) : Date.now();
     if (
