@@ -196,6 +196,20 @@ const css = `
     margin: 0 0 32px;
     text-align: center;
   }
+  .auth-google {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: inherit;
+    border: 1px solid rgba(10,10,10,0.35);
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+  .auth-google:hover { border-color: #8B1A1A; color: #8B1A1A; }
   .auth-divider {
     display: flex;
     align-items: center;
