@@ -127,7 +127,7 @@ const css = `
     letter-spacing: 0.20em;
     text-transform: uppercase;
   }
-  .nav-links a {
+  .nav-links a, .nav-links button.auth-signout {
     color: var(--sumi);
     text-decoration: none;
     opacity: 0.75;
@@ -136,8 +136,17 @@ const css = `
     align-items: center;
     gap: 6px;
   }
-  .nav-links a:hover { opacity: 1; color: var(--hanko); }
-  .nav-links a svg { width: 13px; height: 13px; stroke-width: 1.5; }
+  .nav-links a:hover, .nav-links button.auth-signout:hover { opacity: 1; color: var(--hanko); }
+  .nav-links a svg, .nav-links button.auth-signout svg { width: 13px; height: 13px; stroke-width: 1.5; }
+  .nav-links button.auth-signout {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+  }
 
   /* ---------- Hero ---------- */
   .hero {
