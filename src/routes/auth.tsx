@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth";
-import "@lovable.dev/cloud-auth-js/styles.css";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -91,7 +90,7 @@ function AuthPage() {
             Your brand kits follow your account — open them on any device.
           </p>
 
-          <button type="button" className="lovable-auth-button" onClick={signInWithGoogle}>
+          <button type="button" className="auth-google" onClick={signInWithGoogle}>
             Continue with Google
           </button>
 
