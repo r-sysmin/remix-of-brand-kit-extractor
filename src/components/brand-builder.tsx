@@ -211,7 +211,8 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
             {market.competitors.length > 0 && (
               <ul className="mt-4 space-y-2 text-sm">
                 {market.competitors.map((c, i) => (
-                  <li key={i}>
+                  <li key={i} className="flex items-center gap-2">
+                    <CompetitorLogo url={c.url} name={c.name} />
                     {c.url ? (
                       <a href={c.url} target="_blank" rel="noreferrer" className="font-medium hover:underline">
                         {c.name}
