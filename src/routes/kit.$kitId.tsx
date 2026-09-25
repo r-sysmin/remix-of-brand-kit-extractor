@@ -1634,6 +1634,13 @@ function AssetsSection({
     return (
       <div className="space-y-4">
         <Empty label="No assets found" />
+        <GenerateLogoPanel
+          genStyle={genStyle}
+          setGenStyle={setGenStyle}
+          genBusy={genBusy}
+          onGenerate={handleGenerateLogo}
+          prominent
+        />
         <div className="flex justify-center">
           <button
             type="button"
