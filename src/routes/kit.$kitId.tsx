@@ -14,6 +14,7 @@ import { getKit } from "@/lib/kits.functions";
 import { setKitShare } from "@/lib/share.functions";
 import { extractKit, generateSampleCopy, harvestMoreAssets } from "@/lib/extraction.functions";
 import { generateLogoVariants, VARIANT_PRESETS } from "@/lib/logo-variants.functions";
+import { generateLogo } from "@/lib/logo-generate.functions";
 import { deleteKitAsset, deleteKitColor, updateKitColor } from "@/lib/edits.functions";
 import { fetchFontFiles, resolveGoogleFontFiles } from "@/lib/font-files.functions";
 import { fetchAssetFiles } from "@/lib/asset-files.functions";
