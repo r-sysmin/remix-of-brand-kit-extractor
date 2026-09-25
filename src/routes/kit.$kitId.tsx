@@ -2181,6 +2181,73 @@ function Empty({ label }: { label: string }) {
   );
 }
 
+function GenerateLogoPanel({
+  genStyle,
+  setGenStyle,
+  genBusy,
+  onGenerate,
+  prominent,
+}: {
+  genStyle: "combination" | "mark" | "wordmark";
+  setGenStyle: (s: "combination" | "mark" | "wordmark") => void;
+  genBusy: boolean;
+  onGenerate: () => void;
+  prominent?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-raised)] ${
+        prominent ? "p-5" : "p-4"
+      }`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            // {prominent ? "no logo — generate one" : "generate a new logo"}
+          </div>
+          {prominent && (
+            <div className="mt-1 text-sm text-muted-foreground [font-family:'Libre_Baskerville',serif]">
+              Generate a logo from this brand's colors, fonts, and strategy.
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex overflow-hidden rounded-full border border-[color:var(--border-subtle)]">
+            {(["combination", "mark", "wordmark"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setGenStyle(s)}
+                disabled={genBusy}
+                className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors disabled:opacity-50 ${
+                  genStyle === s
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {s === "combination" ? "Combo" : s === "mark" ? "Mark" : "Wordmark"}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={genBusy}
+            className="inline-flex items-center gap-2 rounded-full border border-foreground bg-foreground px-5 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-background transition-opacity hover:opacity-90 disabled:opacity-60"
+          >
+            {genBusy ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            {genBusy ? "Generating…" : "Generate logo"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type BodyLine = string | { mono: string };
 
 type FailureDetails = {
