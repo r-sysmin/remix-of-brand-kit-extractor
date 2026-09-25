@@ -1672,7 +1672,24 @@ function AssetsSection({
           {harvesting && <Loader2 className="h-3 w-3 animate-spin" />}
           {harvesting ? "Scanning…" : "Find more"}
         </button>
-      </div>
+       </div>
+      {!sourceLogo && (
+        <GenerateLogoPanel
+          genStyle={genStyle}
+          setGenStyle={setGenStyle}
+          genBusy={genBusy}
+          onGenerate={handleGenerateLogo}
+          prominent
+        />
+      )}
+      {sourceLogo && (
+        <GenerateLogoPanel
+          genStyle={genStyle}
+          setGenStyle={setGenStyle}
+          genBusy={genBusy}
+          onGenerate={handleGenerateLogo}
+        />
+      )}
       {sourceLogo && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-raised)] p-5">
           <div className="min-w-0">
