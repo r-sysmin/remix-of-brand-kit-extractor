@@ -295,6 +295,29 @@ export function BrandBuilderSection({ kitId, ownerToken, onApplied }: { kitId: s
   );
 }
 
+const LOGO_DEV_KEY = import.meta.env.VITE_LOVABLE_CONNECTOR_LOGO_DEV_API_KEY as string | undefined;
+
+function CompetitorLogo({ url, name }: { url?: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!LOGO_DEV_KEY || !url || failed) return null;
+  let domain = "";
+  try {
+    domain = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+  if (!domain) return null;
+  return (
+    <img
+      src={`https://img.logo.dev/${domain}?token=${LOGO_DEV_KEY}&size=64&fallback=404`}
+      alt={`${name} logo`}
+      className="h-5 w-5 shrink-0 rounded-sm object-contain"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function Row({ k, v }: { k: string; v: string }) {
   if (!v) return null;
   return (
