@@ -14,6 +14,7 @@ import { getKit } from "@/lib/kits.functions";
 import { setKitShare } from "@/lib/share.functions";
 import { extractKit, generateSampleCopy, harvestMoreAssets } from "@/lib/extraction.functions";
 import { generateLogoVariants, VARIANT_PRESETS } from "@/lib/logo-variants.functions";
+import { generateLogo } from "@/lib/logo-generate.functions";
 import { deleteKitAsset, deleteKitColor, updateKitColor } from "@/lib/edits.functions";
 import { fetchFontFiles, resolveGoogleFontFiles } from "@/lib/font-files.functions";
 import { fetchAssetFiles } from "@/lib/asset-files.functions";
@@ -1539,6 +1540,23 @@ function AssetsSection({
   const [harvesting, setHarvesting] = useState(false);
   const removeAsset = useServerFn(deleteKitAsset);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const generateLogoFn = useServerFn(generateLogo);
+  const [genBusy, setGenBusy] = useState(false);
+  const [genStyle, setGenStyle] = useState<"combination" | "mark" | "wordmark">("combination");
+
+  async function handleGenerateLogo() {
+    if (genBusy) return;
+    setGenBusy(true);
+    try {
+      await generateLogoFn({ data: { kitId, ownerToken, style: genStyle } });
+      toast.success("Logo generated");
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Logo generation failed");
+    } finally {
+      setGenBusy(false);
+    }
+  }
 
   async function handleDelete(assetId: string, label: string) {
     if (deleting) return;
@@ -1616,6 +1634,13 @@ function AssetsSection({
     return (
       <div className="space-y-4">
         <Empty label="No assets found" />
+        <GenerateLogoPanel
+          genStyle={genStyle}
+          setGenStyle={setGenStyle}
+          genBusy={genBusy}
+          onGenerate={handleGenerateLogo}
+          prominent
+        />
         <div className="flex justify-center">
           <button
             type="button"
@@ -1647,7 +1672,24 @@ function AssetsSection({
           {harvesting && <Loader2 className="h-3 w-3 animate-spin" />}
           {harvesting ? "Scanning…" : "Find more"}
         </button>
-      </div>
+       </div>
+      {!sourceLogo && (
+        <GenerateLogoPanel
+          genStyle={genStyle}
+          setGenStyle={setGenStyle}
+          genBusy={genBusy}
+          onGenerate={handleGenerateLogo}
+          prominent
+        />
+      )}
+      {sourceLogo && (
+        <GenerateLogoPanel
+          genStyle={genStyle}
+          setGenStyle={setGenStyle}
+          genBusy={genBusy}
+          onGenerate={handleGenerateLogo}
+        />
+      )}
       {sourceLogo && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-raised)] p-5">
           <div className="min-w-0">
@@ -2135,6 +2177,73 @@ function Empty({ label }: { label: string }) {
   return (
     <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">
       {label}
+    </div>
+  );
+}
+
+function GenerateLogoPanel({
+  genStyle,
+  setGenStyle,
+  genBusy,
+  onGenerate,
+  prominent,
+}: {
+  genStyle: "combination" | "mark" | "wordmark";
+  setGenStyle: (s: "combination" | "mark" | "wordmark") => void;
+  genBusy: boolean;
+  onGenerate: () => void;
+  prominent?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-raised)] ${
+        prominent ? "p-5" : "p-4"
+      }`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            // {prominent ? "no logo — generate one" : "generate a new logo"}
+          </div>
+          {prominent && (
+            <div className="mt-1 text-sm text-muted-foreground [font-family:'Libre_Baskerville',serif]">
+              Generate a logo from this brand's colors, fonts, and strategy.
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex overflow-hidden rounded-full border border-[color:var(--border-subtle)]">
+            {(["combination", "mark", "wordmark"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setGenStyle(s)}
+                disabled={genBusy}
+                className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors disabled:opacity-50 ${
+                  genStyle === s
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {s === "combination" ? "Combo" : s === "mark" ? "Mark" : "Wordmark"}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={genBusy}
+            className="inline-flex items-center gap-2 rounded-full border border-foreground bg-foreground px-5 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-background transition-opacity hover:opacity-90 disabled:opacity-60"
+          >
+            {genBusy ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            {genBusy ? "Generating…" : "Generate logo"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
