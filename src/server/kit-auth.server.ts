@@ -2,7 +2,7 @@
 // (brand_kits.user_id) and/or a browser-held key (brand_kits.owner_token_hash).
 // The usable browser key never leaves the browser; only its one-way hash is stored.
 import { createHash, timingSafeEqual } from "node:crypto";
-import { getRequestHeader } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { getAdmin } from "@/server/supabase-admin.server";
 
 export class KitAccessError extends Error {
